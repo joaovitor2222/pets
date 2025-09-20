@@ -1,0 +1,3935 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Ilha dos Pets - Habilidades Ativas</title>
+    <style>
+        /* Estilo básico do jogo */
+        html,
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #66c2ff;
+            font-family: sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #hud {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px;
+            border-radius: 8px;
+            z-index: 10;
+        }
+
+        .slot {
+            width: 52px;
+            height: 52px;
+            border: 2px solid #333;
+            margin: 2px;
+            background: #ccc;
+            position: relative;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .slot.selected {
+            border-color: yellow;
+            box-shadow: 0 0 10px yellow;
+        }
+
+        .slot img {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .slot .count {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 1px 4px;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+
+        #btnHatch {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        #btnHatch:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        /* --- ESTILOS DA LOJA E ELIXIR --- */
+        #topLeftUI {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+
+        #elixirDisplay {
+            background: rgba(138, 43, 226, 0.8);
+            color: white;
+            padding: 8px 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: 2px solid #4B0082;
+            margin-bottom: 5px;
+        }
+
+        #btnOpenShop {
+            width: 100%;
+            padding: 8px 12px;
+            background-color: #DAA520;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+
+        #shopPanel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 340px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #DAA520;
+            display: none;
+            text-align: center;
+            z-index: 20;
+        }
+
+        #shopPanel h2 {
+            margin-top: 0;
+        }
+
+        .shop-item {
+            margin: 15px 0;
+        }
+
+        .shop-item button {
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        #btnCloseShop {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* --- ESTILOS DAS HABILIDADES DOS PETS --- */
+        #btnMyPets {
+            width: 100%;
+            padding: 8px 12px;
+            background-color: #1E90FF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #petsPanel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 420px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #1E90FF;
+            display: none;
+            z-index: 20;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+
+        .pet-entry {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #444;
+        }
+
+        .pet-entry:last-child {
+            border-bottom: none;
+        }
+
+        .pet-info {
+            text-align: left;
+            max-width: 260px;
+        }
+
+        .pet-info strong {
+            font-size: 1.1em;
+        }
+
+        .pet-info span {
+            font-size: 0.9em;
+            color: #ccc;
+            display: block;
+        }
+
+        .pet-buttons button {
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-left: 6px;
+        }
+
+        #activePetDisplay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-align: right;
+        }
+
+        #activePetDisplay .pet-name {
+            font-weight: bold;
+            color: #1E90FF;
+        }
+
+        #activePetDisplay .pet-buff {
+            font-size: 0.9em;
+        }
+
+        #btnConvertEggs,
+        #btnTatuAbility,
+        #btnTucanoAbility {
+            position: absolute;
+            bottom: 80px;
+            left: calc(50% + 120px);
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ff8c00;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 10;
+            display: none;
+        }
+
+        #btnConvertEggs:disabled,
+        #btnTatuAbility:disabled,
+        #btnTucanoAbility:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        /* --- Mobile joystick --- */
+        #mobileJoystick {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.20);
+            display: block;
+            /* <-- mostrar por padrão */
+            z-index: 60;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #mobileJoystick .stick {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+            transition: transform 0.02s linear;
+            pointer-events: none;
+        }
+
+        /* --- Responsive: telas pequenas (mobile / telas pequenas) --- */
+        @media (max-width: 700px),
+        (max-height: 400px) {
+
+            /* mostra joystick e reduz seu tamanho */
+            #mobileJoystick {
+                display: block !important;
+                width: 110px;
+                height: 110px;
+                left: 8px;
+                bottom: 8px;
+            }
+
+            #mobileJoystick .stick {
+                width: 46px;
+                height: 46px;
+            }
+
+            /* painéis menores e com max-height */
+            #shopPanel,
+            #petsPanel,
+            #modMenuPanel {
+                width: calc(100% - 20px) !important;
+                max-width: 700px !important;
+                max-height: 400px !important;
+                padding: 10px !important;
+                overflow-y: auto !important;
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                border-radius: 8px !important;
+            }
+
+            /* textos e botões menores para caber */
+            #shopPanel h2,
+            #petsPanel h2 {
+                font-size: 1rem !important;
+                margin-top: 0;
+            }
+
+            #shopPanel .shop-item span,
+            #petsPanel .pet-info span {
+                font-size: 0.85rem !important;
+            }
+
+            #shopPanel .shop-item button,
+            #petsPanel .pet-buttons button,
+            #topLeftUI button {
+                padding: 6px 8px !important;
+                font-size: 14px !important;
+            }
+
+            /* HUD e botões menores */
+            #hud .slot {
+                width: 44px !important;
+                height: 44px !important;
+            }
+
+            #btnHatch {
+                bottom: 64px !important;
+                padding: 8px 12px !important;
+                font-size: 14px !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="hud"></div>
+    <button id="btnHatch">Chocar Ovo</button>
+    <button id="btnConvertEggs">Converter Ovos</button>
+    <button id="btnTatuAbility">Ativar Sorte</button>
+    <button id="btnTucanoAbility" style="display:none;">Ativar Tucano</button>
+
+    <div id="topLeftUI">
+        <div id="elixirDisplay">Elixir: 0</div>
+        <div id="hpDisplay">HP: 200 / 200</div>
+        <button id="btnOpenShop">Loja</button>
+        <button id="btnMyPets">Meus Pets</button>
+    </div>
+
+    <div id="activePetDisplay">
+        <div class="pet-name">Nenhum Pet Ativo</div>
+        <div class="pet-buff">Ative um pet para ganhar bônus!</div>
+    </div>
+
+    <div id="shopPanel">
+        <button id="btnCloseShop">X</button>
+        <h2>Loja de Baús & Upgrades</h2>
+        <div class="shop-item"> <span>Baú Comum (50 Elixir)</span> <button class="buy-button"
+                data-type="common">Comprar</button> </div>
+        <div class="shop-item"> <span>Baú Raro (400 Elixir)</span> <button class="buy-button"
+                data-type="rare">Comprar</button> </div>
+        <div class="shop-item"> <span>Baú Lendário (2000 Elixir)</span> <button class="buy-button"
+                data-type="legendary">Comprar</button> </div>
+        <div class="shop-item"> <span>Upgrade: 2 Pets Ativos (1500 Elixir)</span> <button class="buy-button"
+                data-type="dual">Comprar</button> </div>
+        <div class="shop-item" id="tripleUpgradeShopItem" style="display: none;">
+            <span>Upgrade: 3 Pets Ativos (3300 Elixir)</span>
+            <button class="buy-button" data-type="triple">Comprar</button>
+        </div>
+        <!-- Cole dentro de #shopPanel junto com outros .shop-item -->
+        <div class="shop-item">
+            <span>Usina de Corda (3200 Elixir)</span>
+            <button class="buy-button" data-type="plant">Comprar</button>
+        </div>
+        <!-- Comprar 3 madeiras (pack) -->
+        <div class="shop-item">
+            <span>Pack de 3 Madeiras (400 Elixir)</span>
+            <button class="buy-fuel-pack">Comprar</button>
+        </div>
+
+    </div>
+
+    <div id="petsPanel">
+        <button id="btnClosePets"
+            style="position: absolute; top: 10px; right: 10px; background: red; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold;">X</button>
+        <h2 style="margin-top:0;">Meus Pets</h2>
+        <img id="modGearBtn" src="https://cdn-icons-png.flaticon.com/512/1160/1160356.png" title="Mod Menu (clicar 3x)"
+            style="width:26px;height:26px;position:absolute;top:8px;right:48px;cursor:pointer;opacity:0.9;" />
+        <p id="petPanelInstruction" style="color:#ccc; font-size: 0.9em;">Ative 1 pet Principal. Compre upgrades para
+            mais slots.</p>
+        <div id="petList"></div>
+    </div>
+    <!-- Painel do Mod Menu (inicialmente escondido) -->
+    <div id="modMenuPanel" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+     width:420px; max-width:90%; background:#111; border:2px solid #444; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,0.6);
+     z-index:9999; color:#ddd; border-radius:8px;">
+        <button id="btnCloseMod" style="position:absolute; top:8px; right:8px; background:red; color:white; border:none;
+            width:24px; height:24px; border-radius:12px; cursor:pointer;">X</button>
+        <h3 style="margin-top:0;margin-bottom:8px;">Mod Menu</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            <button id="btnHugeElixir">Elixir +99.999 por clique</button>
+            <button id="btnGiveAllPets">Dar todos os pets</button>
+            <button id="btnGiveEggs">Dar 20 de cada ovo</button>
+            <button id="btnSpawnSD">Spawnar Super Defensor na posição do player</button>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <select id="modPetSelect" style="flex:1;">
+                    <!-- options preenchidos pelo script -->
+                </select>
+                <button id="btnGiveSpecificPet">Dar Pet Selecionado</button>
+            </div>
+            <button id="btnSpawnPlantFree">Spawnar Usina grátis na posição do player</button>
+        </div>
+        <p id="modMenuMessage" style="margin-top:10px;color:#9f9; font-size:0.9em;"></p>
+    </div>
+
+    <!-- Mobile joystick (inserido automaticamente) -->
+    <div id="mobileJoystick" aria-hidden="true">
+        <div class="stick"></div>
+    </div>
+
+
+    <script>
+        // --- 1. CONFIGURAÇÃO BÁSICA ---
+        const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+        const FPS = 60;
+        let W = canvas.width = window.innerWidth; let H = canvas.height = window.innerHeight;
+        window.addEventListener('resize', () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; });
+
+        // --- 2. JOGADOR E MUNDO ---
+        const islandRadius = 2000;
+        const player = { x: 0, y: 0, size: 20, baseSpeed: 4, inventory: [], invSize: 6, selectedSlot: 0, elixir: 0, unlockedPets: [], activePet: null, passivePet: null, passivePet2: null, dualUpgrade: false, tripleUpgrade: false };
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.key] = true); window.addEventListener('keyup', e => keys[e.key] = false);
+
+        // --- Usina / Inimigo / Superdefensor (globals)
+        const plants = [];            // usinas no mapa
+        const enemies = [];           // inimigos (o primeiro inimigo / respawns)
+        const superDefenders = [];    // superdefensores criados pela usina
+
+        // Configs
+        const PLANT_COST = 3200;      // já usado no handler acima
+        const FUEL_ELIXIR_PACK_COST = 400; // 400 elixir = 3 madeiras (pack)
+        const FUEL_PACK_WOOD = 3;
+        const FUEL_WOOD_DURATION_SEC = 20; // cada madeira dura 20s
+        const PLANT_EGG_PROGRESS = { common: 1, rare: 2, epic: 7, mystic: 12, legendary: 20 }; // em %
+        const FUEL_PICKUP_RANGE = 200;
+        const ENEMY_BASE_HP = 150;
+        const ENEMY_HP_INCREASE_ON_RESPAWN = 50;
+        const ENEMY_DAMAGE_PER_SEC = 10;
+        const ENEMY_DETECT_RANGE = 250;   // distância que inimigo detecta player
+        const SLIME_DETECT_RANGE = 400;
+
+        /* ------------------ CONFIG & VALORES ------------------ */
+        const FOREST_DRAGON_RESSURECT_MAX = 5;      // máximo de aliados ressuscitados
+        const FOREST_DRAGON_RESSURECT_ATTACK_RANGE = 28; // alcance para atacar
+        const FOREST_DRAGON_RESSURECT_FOLLOW_DISTANCE = 80; // distância de follow ao player
+        // se quiser limitar tempo de vida do aliado (opcional). comentar se não quiser TTL:
+        const FOREST_DRAGON_RESSURECT_TTL_SEC = 60 * 6; // por exemplo 6 minutos
+
+        // quanto cada raridade adiciona de porcentagem (você pode ajustar)
+        const EGG_RARITY_VALUES = {
+            common: 1,
+            uncommon: 5,
+            rare: 15,
+            epic: 30,
+            legendary: 60
+        };
+
+        const resurrectedAllies = []; // guarda os aliados ressuscitados pelo dragão
+
+
+        // distância máxima (px) para permitir colocar ovo
+        const PLACE_EGG_DISTANCE = 150;
+
+        // tempo de respawn de inimigos (ms). Usamos esta variável para controlar dinamicamente.
+        let ENEMY_RESPAWN_MS = 1000; // valor padrão já existente (1s). Será alterado pra 120000 quando uma usina completar.
+        const SUPERDEF_HP = 800;   // vida total do SuperDefender (ajuste a gosto)
+        const SUPERDEF_DPS = 40;    // dano por segundo que o SD causa
+
+        // --- 3. CARREGAMENTO DE IMAGENS ---
+        const imgs = {};
+        // substitua sua função loadImg por esta
+        function loadImg(key, url) {
+            const i = new Image();
+            i._broken = false;
+
+            // Definir crossOrigin apenas para URLs http/https (não para file: ou data:)
+            if (/^https?:\/\//i.test(url)) {
+                i.crossOrigin = "anonymous";
+            }
+
+            i.onload = () => { i._broken = false; /* carregou OK */ };
+            i.onerror = () => {
+                console.warn('Falha ao carregar imagem:', key, url);
+                i._broken = true;
+                // fallback minimal (1x1 transparente)
+                i.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+            };
+            i.src = url;
+            imgs[key] = i;
+        }
+
+        loadImg('chestCommon', 'https://png.pngtree.com/png-clipart/20250318/original/pngtree-a-classic-wooden-treasure-chest-with-metal-reinforcements-possibly-filled-gold-png-image_20677340.png');
+        loadImg('chestRare', 'https://static.vecteezy.com/system/resources/thumbnails/036/460/491/small_2x/ai-generated-2d-treasure-chest-game-asset-design-png.png');
+        loadImg('chestLegendary', 'https://png.pngtree.com/png-vector/20240611/ourmid/pngtree-game-reward-rare-lock-treasure-chests-png-image_12644699.png');
+        loadImg('eggCommon', 'imagens/eggcommon.png');
+        loadImg('eggRare', 'imagens/eggrare.png');
+        loadImg('eggEpic', 'imagens/eggepic.png');
+        loadImg('eggMystic', 'imagens/eggmystic.png');
+        loadImg('eggLegendary', 'imagens/egglendario.png');
+        loadImg('petCapivara', 'https://images.vexels.com/media/users/3/318413/isolated/preview/17ff412266bfeec2285f267cc98920e4-capivara-usando-um-belo-chapeu.png');
+        loadImg('petTucano', 'https://images.vexels.com/media/users/3/232986/isolated/preview/9ebb2db6439d7901af361477c2aa7018-curso-de-cor-de-passaro-tropical-tucano.png');
+        loadImg('petOnça-Pintada', 'https://png.pngtree.com/png-clipart/20240824/original/pngtree-cartoon-jaguar-vector-illustration-png-image_15839618.png');
+        loadImg('petBoto-cor-de-rosa', 'imagens/boto.jpg');
+        loadImg('petDragão da Floresta', 'https://cdn-icons-png.flaticon.com/512/10848/10848578.png');
+        loadImg('petPica-Pau', 'https://png.pngtree.com/png-clipart/20241208/original/pngtree-3d-cartoon-woodpecker-on-a-transparent-background-png-image_17664172.png');
+        loadImg('petTatu', 'https://png.pngtree.com/png-clipart/20230825/original/pngtree-cute-little-armadillo-cartoon-standing-picture-image_8671542.png');
+        loadImg('petLobo-Guará', 'imagens/lobo.png');
+        // cole junto com os outros loadImg(...)
+        loadImg('petArara-Azul', 'https://png.pngtree.com/png-clipart/20240613/original/pngtree-cute-3d-blue-macaw-png-image_15316857.png');
+        // --- IMAGENS: adicionar (cole junto com os outros loadImg)
+        loadImg('superDefender', 'https://png.pngtree.com/png-vector/20250513/ourmid/pngtree-chibi-golem-boss-character-fantasy-rpg-png-image_16108980.png');
+        loadImg('enemyOrange', 'https://png.pngtree.com/png-vector/20230814/ourmid/pngtree-cartoon-orange-monster-on-a-beige-background-clipart-vector-png-image_6863611.png');
+        loadImg('plant', 'imagens/plant.jpg');
+        loadImg('wood', 'imagens/wood.jpg');
+        loadImg('petMico', 'https://www.gameartguppy.com/wp-content/uploads/2014/04/product_monkey.png');
+        loadImg('slimeSprite', 'https://static.wikia.nocookie.net/role-play/images/3/38/Slime.png/revision/latest?cb=20131228223322');
+
+
+        /* === SLIME ENEMY (inserir após as constantes/vars principais, perto de ENEMY_BASE_HP) === */
+        (function () {
+            // configs do slime
+            const SLIME_HP_FACTOR = 0.7;              // 70% da vida do inimigo convencional
+            const SLIME_SPEED_FACTOR = 1.5;           // 50% mais rápido que player.baseSpeed
+            const SLIME_DETECT_RANGE = 400;           // detecta player e super defenders a 400px
+            const SLIME_MAX_STACK = 10;               // máximo de slimes antes de parar de duplicar
+            const SLIME_DUPLICATE_DELAY = 120000;     // 2 minutos em ms para duplicar/respawn
+            const SLIME_FIRST_SPAWN_DELAY = 180000;   // 3 minutos em ms desde o começo do jogo
+
+            // marca o tempo de inicio do jogo (se já não tiver)
+            window.__gameStartTime = window.__gameStartTime || Date.now();
+
+            // util: spawn aleatório dentro da ilha
+            function randomPointOnIsland() {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()) * (islandRadius - 30); // evita borda
+                return { x: Math.cos(angle) * r, y: Math.sin(angle) * r };
+            }
+
+            // cria um objeto slime e adiciona ao array enemies (reusa estrutura de enemies do jogo)
+            function createSlime(opt = {}) {
+                const pos = opt.pos || randomPointOnIsland();
+                const hp = Math.ceil((ENEMY_BASE_HP || 150) * SLIME_HP_FACTOR);
+                const spd = (player && player.baseSpeed) ? player.baseSpeed * SLIME_SPEED_FACTOR : 4 * SLIME_SPEED_FACTOR;
+                const slime = {
+                    id: 'slime_' + Date.now() + '_' + Math.floor(Math.random() * 99999),
+                    type: 'slime',
+                    x: pos.x,
+                    y: pos.y,
+                    size: opt.size || 18,
+                    hp: hp,
+                    maxHp: hp,
+                    speed: spd,
+                    damagePerSec: ENEMY_DAMAGE_PER_SEC || 10,
+                    lastThink: Date.now(),
+                    isSlime: true
+                };
+                enemies.push(slime);
+                return slime;
+            }
+
+            // spawn inicial agendado 3 minutos após início do jogo
+            function ensureInitialSlimeSpawn() {
+                const elapsed = Date.now() - (window.__gameStartTime || Date.now());
+                if (elapsed >= SLIME_FIRST_SPAWN_DELAY) {
+                    if (!window.__slimeInitialSpawned) {
+                        createSlime();
+                        window.__slimeInitialSpawned = true;
+                    }
+                } else {
+                    setTimeout(() => {
+                        if (!window.__slimeInitialSpawned) {
+                            createSlime();
+                            window.__slimeInitialSpawned = true;
+                        }
+                    }, SLIME_FIRST_SPAWN_DELAY - elapsed);
+                }
+            }
+            ensureInitialSlimeSpawn();
+
+            // quando um slime morre, agenda duplicação/respawn
+            function onSlimeDeath(deadSlime) {
+                // remove se ainda estiver no array (a lógica de dano/morte do seu jogo pode já remover)
+                // aqui a gente só agenda novos slimes
+                const countSlimes = enemies.filter(e => e.type === 'slime').length;
+                const willDuplicate = countSlimes < SLIME_MAX_STACK;
+                setTimeout(() => {
+                    // sempre spawn dentro da ilha
+                    if (willDuplicate) {
+                        // tenta spawnar 2 slimes (duplica)
+                        createSlime();
+                        createSlime();
+                    } else {
+                        // se já no limite, apenas respawna 1 a cada 2 minutos
+                        createSlime();
+                    }
+                }, SLIME_DUPLICATE_DELAY);
+            }
+
+            // Hook: se no seu jogo já existe um handler genérico de morte de inimigos,
+            // conecte a chamada abaixo lá. Se não, este observer tenta interceptar removals.
+            // Aqui fazemos uma "observação leve": sempre que detectarmos um inimigo do tipo slime com hp<=0,
+            // chamamos onSlimeDeath uma vez.
+            let __knownSlimeIds = new Set();
+
+            try { if (typeof onEnemyKilled === 'function') onEnemyKilled(deadSlime, deadSlime._lastDamager || null); } catch (e) { console.warn(e); }
+            function scanSlimesForDeath() {
+                for (const e of enemies) {
+                    if (e.type === 'slime') {
+                        if (!__knownSlimeIds.has(e.id)) __knownSlimeIds.add(e.id);
+                        if ((e.hp || 0) <= 0 && __knownSlimeIds.has(e.id)) {
+                            // evita duplicar chamadas: remove do set para marcar que já processamos morte
+                            __knownSlimeIds.delete(e.id);
+                            onSlimeDeath(e);
+                        }
+                    }
+                }
+                // também limpa ids inexistentes
+                for (const id of Array.from(__knownSlimeIds)) {
+                    if (!enemies.some(x => x.id === id)) __knownSlimeIds.delete(id);
+                }
+            }
+            setInterval(scanSlimesForDeath, 1000);
+
+            // AI simples para slimes: perseguir player e superDefenders dentro de SLIME_DETECT_RANGE
+            function updateSlimes(dt) {
+                for (const s of enemies) {
+                    if (s.type !== 'slime') continue;
+                    // detect alvo mais próximo (player ou super defender) dentro do range
+                    let target = null;
+                    let bestD = Infinity;
+                    const px = player.x, py = player.y;
+                    const dPlayer = Math.hypot(s.x - px, s.y - py);
+                    if (dPlayer <= SLIME_DETECT_RANGE) { target = player; bestD = dPlayer; }
+                    for (const sd of (superDefenders || [])) {
+                        const dsd = Math.hypot(s.x - sd.x, s.y - sd.y);
+                        if (dsd <= SLIME_DETECT_RANGE && dsd < bestD) { target = sd; bestD = dsd; }
+                    }
+                    if (target) {
+                        const ang = Math.atan2(target.y - s.y, target.x - s.x);
+                        s.x += Math.cos(ang) * s.speed;
+                        s.y += Math.sin(ang) * s.speed;
+
+                        // NOVO: LÓGICA DE DANO
+                        const attackRange = s.size + (target.size || 20); // Alcance baseado no tamanho das entidades
+                        const distToTarget = Math.hypot(s.x - target.x, s.y - target.y);
+
+                        if (distToTarget <= attackRange) {
+                            const damagePerSec = s.damagePerSec || 10;
+                            const damageThisFrame = damagePerSec * (dt / 1000); // Converte o delta time de ms para segundos
+
+                            if (target === player) {
+                                // Causa dano ao jogador usando a função existente
+                                applyDamageToPlayer(damageThisFrame, s);
+                            } else {
+                                // Causa dano a outras entidades (como Super Defensores)
+                                target.hp = Math.max(0, target.hp - damageThisFrame);
+                            }
+                        }
+                    } else {
+                        // patrulha leve: pequeno movimento aleatório
+                        const ang = (Math.random() - 0.5) * 0.2 + Math.atan2(0, 0);
+                        s.x += Math.cos(ang) * s.speed * 0.02;
+                        s.y += Math.sin(ang) * s.speed * 0.02;
+                    }
+
+                    // garante que slimes fiquem dentro da ilha
+                    const dist = Math.hypot(s.x, s.y);
+                    if (dist > islandRadius - s.size) {
+                        // puxa pro interior
+                        const angToCenter = Math.atan2(-s.y, -s.x);
+                        s.x += Math.cos(angToCenter) * s.speed * 0.5;
+                        s.y += Math.sin(angToCenter) * s.speed * 0.5;
+                    }
+                }
+            }
+
+            // integrando ao loop principal: tenta chamar updateSlimes com delta
+            let __lastSlimeTick = Date.now();
+            function slimeTick() {
+                const now = Date.now();
+                const dt = now - __lastSlimeTick;
+                __lastSlimeTick = now;
+                updateSlimes(dt);
+                requestAnimationFrame(slimeTick);
+            }
+            slimeTick();
+
+            // renderização simples (se seu render já desenha enemies, adapte para usar sprite)
+            // Aqui só desenhamos sobre o canvas, se você já tem desenho de inimigos ignore ou integre:
+            const originalRender = window.renderEnemies || null;
+            window.renderEnemies = function (ctxParam) {
+                // chama render original (se existir)
+                if (typeof originalRender === 'function') originalRender(ctxParam);
+                // depois desenha slimes por cima (se a sua engine já desenha, remova este bloco)
+                try {
+                    const ctx2 = ctxParam || ctx;
+                    for (const s of enemies) {
+                        if (s.type !== 'slime') continue;
+                        const drawX = W / 2 + (s.x - player.x);
+                        const drawY = H / 2 + (s.y - player.y);
+                        const size = s.size || 18;
+                        if (slimeSprite.complete) {
+                            ctx2.drawImage(slimeSprite, drawX - size / 2, drawY - size / 2, size, size);
+                        } else {
+                            // fallback: círculo verde
+                            ctx2.fillStyle = '#7eea7e';
+                            ctx2.beginPath(); ctx2.arc(drawX, drawY, size / 2, 0, Math.PI * 2); ctx2.fill();
+                        }
+                        // vida opcional
+                        ctx2.fillStyle = 'rgba(0,0,0,0.6)';
+                        ctx2.fillRect(drawX - size / 2, drawY - size / 2 - 8, size, 4);
+                        ctx2.fillStyle = '#ff4d4d';
+                        const hpPerc = Math.max(0, (s.hp || 0) / (s.maxHp || 1));
+                        ctx2.fillRect(drawX - size / 2, drawY - size / 2 - 8, size * hpPerc, 4);
+                    }
+                } catch (err) {
+                    // se dar erro, ignora (compatibilidade)
+                }
+            };
+
+            // expose para debug
+            window.__slimeAPI = { createSlime, onSlimeDeath };
+
+        })();
+
+        // --- 4. SISTEMAS DE BAÚS E PETS ---
+        const chests = []; const chestSize = 64; const maxChests = 20; const activePets = []; const petSize = 50;
+        let chestsOpenedCounter = 0;
+
+        // --- 5. INVENTÁRIO E CONSTANTES DO JOGO ---
+        const hud = document.getElementById('hud');
+        const elixirDisplay = document.getElementById('elixirDisplay');
+
+        const btnHatch = document.getElementById('btnHatch');
+        const EGG_STACK_LIMIT = 20;
+        const DUPLICATE_ELIXIR_VALUES = { "Capivara": 20, "Tucano": 40, "Onça-Pintada": 100, "Boto-cor-de-rosa": 250, "Dragão da Floresta": 500, "Pica-Pau": 20, "Tatu": 300, "Lobo-Guará": 130, "Arara-Azul": 600, "Mico": 260 };
+        const SHOP_COSTS = {
+            common: 50,
+            rare: 400,
+            legendary: 2000,
+            dual: 1500,
+            triple: 3300,
+            plant: PLANT_COST,  // <-- adiciona isto (PLANT_COST já existe no topo do arquivo)
+            fuelPack: FUEL_ELIXIR_PACK_COST
+        };
+        const PET_BUFFS = {
+            "Capivara": {
+                description: "+10% Velocidade.\n25% chance de abrir 1 baú grátis."
+            },
+            "Tucano": { // ATUALIZADO
+                description: "ATIVA: Converte 10 Ovos (Comuns/Raros) em 1 ovo Místico ou Lendário. 5% de chance de dropar um ovo extra",
+                hasActiveAbility: true
+            },
+            "Onça-Pintada": {
+                description: "+25% Velocidade.\nPASSIVA: 2% de chance por segundo de gerar 1 baú grátis."
+            },
+            "Lobo-Guará": {
+                description: "PASSIVA: Garante ovo raro+ a cada 3 baús."
+            },
+            "Boto-cor-de-rosa": {
+                description: "15% chance de melhorar a raridade de um ovo. e diminui o preco dos bau em 50%"
+            },
+            "Dragão da Floresta": { // ATUALIZADO
+                description: "+25% Vel. e 5% de ovo extra.\nPASSIVA: Ressuscita inimigos como aliados."
+            },
+            "Arara-Azul": {
+                description: "LENDÁRIA: Dobra o efeito do outro pet ativo.\nSinergia c/ Pica-Pau (Passivo): 80% conversão.\nSinergia c/ Tatu: Sorte dura 2x e recarrega 2x mais rápido."
+            },
+            "Pica-Pau": { // ATUALIZADO
+                description: "ATIVA: Converte 5 Ovos Comuns em 1 de raridade maior (30% de chance).",
+                hasActiveAbility: true
+            },
+            "Tatu": { // ATUALIZADO
+                description: "ATIVA: 'Sorte' por 60s (+50% Elixir, chance do Pica-Pau vai para 50%).",
+                hasActiveAbility: true
+            },
+            "Mico": {
+                description: "PASSIVA: +40% de chance de ganhar 1 ovo extra por baú. ATIVA (Trapaceiro): reseta cooldowns de todas as habilidades (exceto a do Mico). Cooldown: 10min (5min com Arara).",
+                hasActiveAbility: true
+            },
+        };
+
+        const BOTO_DURATION_MS = 50 * 1000; // 50s
+        const BOTO_COOLDOWN_MS = 80 * 1000; // 80s
+        const MICO_BASE_COOLDOWN_MS = 10 * 60 * 1000;   // 10 minutos
+        const MICO_ARARA_COOLDOWN_MS = 5 * 60 * 1000;   // 5 minutos (quando Arara ativa)
+        const MICO_ACTIVE_NAME = 'Mico';
+
+        // --- 6. GERENCIAMENTO DE HABILIDADES ---
+        const abilities = {}; const btnConvertEggs = document.getElementById('btnConvertEggs'); const btnTatuAbility = document.getElementById('btnTatuAbility'); const btnTucanoAbility = document.getElementById('btnTucanoAbility');
+        const TUCANO_BASE_N = 10;
+        const TUCANO_ARARA_N = 5;
+        const TUCANO_COOLDOWN_MS = 8 * 60 * 1000;       // 8 minutos
+        const TUCANO_ARARA_COOLDOWN_MS = 4 * 60 * 1000; // 4 minutos quando Arara ativa
+        const TUCANO_MAX_TRIGGERS = 10; // segurança: máximo de prêmios por ativação
+        if (!abilities['Tucano']) {
+            abilities['Tucano'] = { onCooldown: false, cooldownEnds: 0, timerInterval: null };
+        }
+        if (!abilities['Boto-cor-de-rosa']) {
+            abilities['Boto-cor-de-rosa'] = { onCooldown: false, cooldownEnds: 0, isActive: false, activeEnds: 0, timerInterval: null };
+        }
+        if (!abilities[MICO_ACTIVE_NAME]) {
+            abilities[MICO_ACTIVE_NAME] = { onCooldown: false, cooldownEnds: 0, isActive: false, activeEnds: 0, timerInterval: null };
+        }
+        function initializeAbilityStates() { for (const petName in PET_BUFFS) { if (PET_BUFFS[petName].hasActiveAbility) { abilities[petName] = { onCooldown: false, cooldownEnds: 0, isActive: false, activeEnds: 0, timerInterval: null }; } } }
+        function handleAbilityVisuals(petName, button, config) { const state = abilities[petName]; if (state.timerInterval) clearInterval(state.timerInterval); button.disabled = true; state.timerInterval = setInterval(() => { const now = Date.now(); if (state.isActive && now < state.activeEnds) { const remaining = Math.ceil((state.activeEnds - now) / 1000); button.textContent = `${config.activeText} (${remaining}s)`; } else { if (state.isActive) state.isActive = false; if (now < state.cooldownEnds) { const remaining = Math.ceil((state.cooldownEnds - now) / 1000); button.textContent = `${config.cooldownText} (${remaining}s)`; } else { state.onCooldown = false; button.disabled = false; button.textContent = config.readyText; clearInterval(state.timerInterval); } } }, 1000); }
+        function isPetActive(petName) { return player.activePet === petName || player.passivePet === petName || player.passivePet2 === petName; }
+        // --- ensureMicoInApplyPetBuffs() --------------------------------------
+        ensureMicoInApplyPetBuffs();
+
+        function ensureMicoInApplyPetBuffs() {
+            // 1) Patch em getPetContribution: adiciona caso 'Mico' (se getPetContribution existir)
+            if (typeof getPetContribution === 'function') {
+                const _origGetPetContribution = getPetContribution;
+                getPetContribution = function (petName) {
+                    const contributions = _origGetPetContribution(petName) || { speed: 0, extraEgg: 0, upgradeRarity: 0 };
+                    if (!petName) return contributions;
+                    // se já estava implementado, evita sobrescrever outros valores inadvertidamente
+                    if (petName === 'Mico') {
+                        contributions.extraEgg = Math.max(contributions.extraEgg || 0, 0.40); // +40% extra egg
+                    }
+                    return contributions;
+                };
+            } else {
+                // fallback: cria uma função simples se por algum motivo não existir
+                window.getPetContribution = function (petName) {
+                    const contributions = { speed: 0, extraEgg: 0, upgradeRarity: 0 };
+                    switch (petName) {
+                        case "Capivara": contributions.speed = 10; break;
+                        case "Onça-Pintada": contributions.speed = 25; break;
+                        case "Dragão da Floresta": contributions.speed = 25; contributions.extraEgg = 0.05; break;
+                        case "Tucano": contributions.extraEgg = 0.05; break;
+                        case "Boto-cor-de-rosa": contributions.upgradeRarity = 0.15; break;
+                        case "Mico": contributions.extraEgg = 0.40; break;
+                        default: break;
+                    }
+                    return contributions;
+                };
+            }
+
+            // 2) Garante que applyPetBuffs chame a rotina de visuais do Mico (se existir)
+            if (typeof applyPetBuffs === 'function') {
+                const _origApplyPetBuffs = applyPetBuffs;
+                applyPetBuffs = function () {
+                    _origApplyPetBuffs();
+
+                    // Preferir usar refreshMicoButtonVisibility se definida (mais completa)
+                    if (typeof refreshMicoButtonVisibility === 'function') {
+                        try { refreshMicoButtonVisibility(); } catch (err) { console.warn('refreshMicoButtonVisibility falhou:', err); }
+                    } else {
+                        // fallback simples: mostra/oculta botão por convenção de id
+                        const btn = document.getElementById('btnMicoAbility');
+                        if (btn) {
+                            btn.style.display = (player && player.activePet === 'Mico') ? 'block' : 'none';
+                            // tenta usar helper de cooldown se existir
+                            if (typeof getAbilityCooldownRemaining === 'function') {
+                                const rem = getAbilityCooldownRemaining('Mico');
+                                btn.disabled = rem > 0;
+                                if (!btn.disabled) btn.textContent = 'Ativar Mico (Trapaceiro)';
+                                else btn.textContent = `Mico (cooldown ${Math.ceil(rem / 1000)}s)`;
+                            }
+                        }
+                    }
+                };
+            } else {
+                console.warn('applyPetBuffs não encontrada — não foi possível integrar visuais do Mico automaticamente.');
+            }
+
+            // 3) Garante que PET_BUFFS tenha uma entrada descritiva para a UI
+            if (typeof PET_BUFFS === 'object') {
+                if (!PET_BUFFS['Mico']) {
+                    PET_BUFFS['Mico'] = {
+                        description: "PASSIVA: +40% chance de ovo extra por baú (80% com Arara). ATIVA (Trapaceiro): reseta cooldowns de outros pets. Cooldown: 10min (5min com Arara).",
+                        hasActiveAbility: true
+                    };
+                }
+            }
+
+            // 4) mensagem opcional de debug para confirmar
+            console.log('ensureMicoInApplyPetBuffs: integrada (getPetContribution patched, applyPetBuffs hooked, PET_BUFFS ok).');
+        }
+        let btnBotoAbility = document.getElementById('btnBotoAbility');
+        if (!btnBotoAbility) {
+            btnBotoAbility = document.createElement('button');
+            btnBotoAbility.id = 'btnBotoAbility';
+            btnBotoAbility.style.position = 'absolute';
+            btnBotoAbility.style.bottom = '80px';
+            btnBotoAbility.style.left = 'calc(50% + 180px)'; // posicionamento próximo aos outros
+            btnBotoAbility.style.transform = 'translateX(-50%)';
+            btnBotoAbility.style.padding = '10px 20px';
+            btnBotoAbility.style.fontSize = '16px';
+            btnBotoAbility.style.backgroundColor = '#ff69b4';
+            btnBotoAbility.style.color = 'white';
+            btnBotoAbility.style.border = 'none';
+            btnBotoAbility.style.borderRadius = '5px';
+            btnBotoAbility.style.cursor = 'pointer';
+            btnBotoAbility.style.zIndex = 10;
+            btnBotoAbility.style.display = 'none'; // inicialmente escondido (mostrado por applyPetBuffs)
+            btnBotoAbility.textContent = 'Ativar Boto';
+            document.body.appendChild(btnBotoAbility);
+        }
+        let btnMicoAbility = document.getElementById('btnMicoAbility');
+        if (!btnMicoAbility) {
+            btnMicoAbility = document.createElement('button');
+            btnMicoAbility.id = 'btnMicoAbility';
+            btnMicoAbility.style.position = 'absolute';
+            btnMicoAbility.style.bottom = '80px';
+            btnMicoAbility.style.left = 'calc(50% + 240px)';
+            btnMicoAbility.style.transform = 'translateX(-50%)';
+            btnMicoAbility.style.padding = '10px 20px';
+            btnMicoAbility.style.fontSize = '16px';
+            btnMicoAbility.style.backgroundColor = '#8B4513';
+            btnMicoAbility.style.color = 'white';
+            btnMicoAbility.style.border = 'none';
+            btnMicoAbility.style.borderRadius = '5px';
+            btnMicoAbility.style.cursor = 'pointer';
+            btnMicoAbility.style.zIndex = 10;
+            btnMicoAbility.style.display = 'none';
+            btnMicoAbility.textContent = 'Ativar Mico (Trapaceiro)';
+            document.body.appendChild(btnMicoAbility);
+        }
+
+        // --- 7. LÓGICA PRINCIPAL DO JOGO ---
+        btnHatch.addEventListener('click', () => {
+            const selectedItem = player.inventory[player.selectedSlot]; if (!selectedItem) return;
+            let petName;
+            if (selectedItem.type === 'eggCommon') {
+                petName = Math.random() < 0.50 ? "Pica-Pau" : "Capivara";
+            } else if (selectedItem.type === 'eggMystic') {
+                petName = Math.random() < 0.50 ? "Tatu" : "Boto-cor-de-rosa";
+            } else if (selectedItem.type === 'eggEpic') {
+                petName = Math.random() < 0.70 ? "Onça-Pintada" : "Lobo-Guará";
+            } else if (selectedItem.type === 'eggRare') {
+                petName = (Math.random() < 0.55) ? "Tucano" : "Mico";
+            } else if (selectedItem.type === 'eggLegendary') {
+                // Ovo lendário: 40% vira Arara-Azul, senão Dragão da Floresta
+                petName = Math.random() < 0.40 ? "Arara-Azul" : "Dragão da Floresta";
+            }
+
+            if (petName) {
+                const isDuplicate = player.unlockedPets.includes(petName);
+                const elixirGained = isDuplicate ? DUPLICATE_ELIXIR_VALUES[petName] * (abilities.Tatu?.isActive ? 1.5 : 1) : 0;
+                if (isDuplicate) {
+                    player.elixir += Math.ceil(elixirGained);
+                    alert(`Você já tem um(a) ${petName}! Convertido em ${Math.ceil(elixirGained)} de Elixir.`);
+                    updateElixirDisplay();
+                } else {
+                    alert(`Parabéns! Um ovo chocou e você conseguiu um(a) ${petName}!`);
+                    player.unlockedPets.push(petName);
+                    activePets.push({ x: player.x, y: player.y, type: petName });
+                    updatePetsPanel();
+                }
+                removeItem(selectedItem.type, 1);
+            } else { alert("Este item não pode ser chocado."); }
+        });
+
+        btnConvertEggs.addEventListener('click', () => {
+            const state = abilities['Pica-Pau'];
+            if (!state) { alert('Pica-Pau não tem habilidade definida.'); return; }
+            if (state.onCooldown) { alert('Habilidade em tempo de recarga!'); return; }
+            if (countItem('eggCommon') < 5) { alert('Você precisa de pelo menos 5 Ovos Comuns.'); return; }
+
+            // determina chance:
+            // - se Tatu ativo (habilidade Tatu está ativa) => sempre converte (1.0)
+            // - else se Arara presente E Pica-Pau estiver no slot PASSIVO => 80%
+            // - caso contrário => 30%
+            let conversionChance = 0.30;
+            if (abilities.Tatu?.isActive) conversionChance = 1.0;
+            else if (isPetActive('Arara-Azul') && player.passivePet === 'Pica-Pau') conversionChance = 0.80;
+
+            // aplica cooldown padrão (90s)
+            state.onCooldown = true;
+            state.cooldownEnds = Date.now() + 90_000;
+            handleAbilityVisuals('Pica-Pau', btnConvertEggs, { cooldownText: 'Recarregando', readyText: 'Converter Ovos' });
+
+            if (Math.random() < conversionChance) {
+                removeItem('eggCommon', 5);
+                const r = Math.random();
+                let newEgg = r < 0.01 ? 'eggMystic' : (r < 0.30 ? 'eggEpic' : 'eggRare');
+                giveItem(newEgg, 1);
+                alert(`Sucesso! Seus ovos foram convertidos em um ${newEgg.replace('egg', 'Ovo ')}!`);
+            } else {
+                alert('A conversão falhou. Tente novamente quando a habilidade recarregar.');
+            }
+        });
+
+
+        btnTatuAbility.addEventListener('click', () => {
+            const state = abilities['Tatu'];
+            if (!state) { alert('Tatu não tem habilidade definida.'); return; }
+            if (state.onCooldown) { alert('Habilidade em tempo de recarga!'); return; }
+
+            let activeDuration = 60_000;   // 60s por padrão
+            let cooldownDuration = 150_000; // 150s por padrão
+
+            // se Arara estiver presente (em qualquer slot) E Tatu estiver ativo (principal ou passivo),
+            // aplicamos a sinergia: duração x2, cooldown pela metade
+            if (isPetActive('Arara-Azul') && (player.activePet === 'Tatu' || player.passivePet === 'Tatu')) {
+                activeDuration *= 2;
+                cooldownDuration = Math.round(cooldownDuration / 2);
+            }
+
+            state.isActive = true; state.onCooldown = true;
+            state.activeEnds = Date.now() + activeDuration;
+            state.cooldownEnds = Date.now() + cooldownDuration;
+
+            handleAbilityVisuals('Tatu', btnTatuAbility, { activeText: 'Sorte Ativa', cooldownText: 'Recarregando', readyText: 'Ativar Sorte' });
+        });
+
+
+
+        // Função que compra o pack e abastece a usina mais próxima do player
+        function buyFuelPackForPlant() {
+            if (player.elixir === undefined) { alert('player.elixir não encontrado'); return; }
+            player.elixir = Number(player.elixir) || 0;
+            if (player.elixir < FUEL_ELIXIR_PACK_COST) {
+                alert('Você precisa de 400 Elixir para comprar 3 madeiras.');
+                return;
+            }
+
+            // encontra usina mais próxima (array plants / objects conforme seu projeto)
+            let nearest = null;
+            let bestD = Infinity;
+            for (const p of plants.length ? plants : (typeof objects !== 'undefined' ? objects.filter(o => o.type === 'machine') : [])) {
+                const d = Math.hypot(player.x - p.x, player.y - p.y);
+                if (d < bestD) { bestD = d; nearest = p; }
+            }
+
+            if (!nearest || bestD > FUEL_PICKUP_RANGE) {
+                alert('Aproxime-se de uma Usina para abastecê-la com o pack de madeira.');
+                return;
+            }
+
+            // efetiva compra
+            player.elixir -= FUEL_ELIXIR_PACK_COST;
+
+            // garante estrutura consistente: slots.fuel = { type: 'wood'|'leaf', count: N } ou null
+            nearest.slots = nearest.slots || {};
+            if (!nearest.slots.fuel) nearest.slots.fuel = { type: 'wood', count: 0 };
+            // se o slot já for de outro tipo (ex: leaf), mantém e soma somente se for wood (ou converte se quiser)
+            if (nearest.slots.fuel.type !== 'wood') {
+                // se quiser mesclar tipos, trate aqui; por ora, sobrescrevemos para madeira
+                nearest.slots.fuel.type = 'wood';
+            }
+            nearest.slots.fuel.count = (nearest.slots.fuel.count || 0) + FUEL_PACK_WOOD;
+
+            // timers: o loop principal espera nearest.timers.fuelRemaining (em frames)
+            nearest.timers = nearest.timers || {};
+            const fps = (typeof FPS !== 'undefined' ? FPS : 60);
+            // adiciona tempo equivalente a 3 madeiras (cada madeira dura FUEL_WOOD_DURATION_SEC)
+            nearest.timers.fuelRemainingFrames = (nearest.timers.fuelRemainingFrames || 0) + (FUEL_PACK_WOOD * FUEL_WOOD_DURATION_SEC * fps);
+
+            // atualiza UI se existir
+            if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+            if (typeof renderPlantSlots === 'function') renderPlantSlots();
+            if (typeof updatePlantPanel === 'function') updatePlantPanel(nearest);
+
+            if (nearest.waitingForFuel && nearest.progressEggPercent >= 100 && Date.now() > (nearest.superCooldown || 0)) {
+                // consome 1 madeira imediata e chama onPlantCompleted
+                consumeOneWoodFromPlant(nearest);
+                onPlantCompleted(nearest);
+            }
+
+            alert('Comprou 3 madeiras e abasteceu a Usina.');
+        }
+
+        // Conecta o botão (chame isso depois que o DOM estiver pronto)
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.classList.contains('buy-fuel-pack')) {
+                buyFuelPackForPlant();
+            }
+        });
+        // --- Loja: comprar Usina (coloque isso junto ao handler das buy-button já existente)
+        // Handler completo e preservando toda a lógica original (plant / upgrades / baús).
+        document.querySelectorAll('.buy-button').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const type = this.getAttribute('data-type');
+                const baseCost = SHOP_COSTS[type];
+
+                // Compra da usina (plant) delegada à função já existente
+                if (type === 'plant') {
+                    buyPlant();
+                    return;
+                }
+
+                // --- Lógica separada para Upgrades (dual / triple) ---
+                if (type === 'dual' || type === 'triple') {
+                    // Checa se já possui o upgrade
+                    if ((type === 'dual' && player.dualUpgrade) || (type === 'triple' && player.tripleUpgrade)) {
+                        alert('Você já possui este upgrade!');
+                        return;
+                    }
+                    // Checa pré-requisito para o triple
+                    if (type === 'triple' && !player.dualUpgrade) {
+                        alert('Você precisa comprar o upgrade de 2 pets primeiro!');
+                        return;
+                    }
+
+                    // Verifica se tem elixir suficiente para o custo base do upgrade
+                    if (player.elixir < baseCost) {
+                        alert('Elixir insuficiente!');
+                        return;
+                    }
+
+                    // Debita o custo e aplica o upgrade
+                    player.elixir -= baseCost;
+                    updateElixirDisplay();
+
+                    if (type === 'dual') {
+                        player.dualUpgrade = true;
+                        alert('Upgrade adquirido! Agora você pode ativar 1 pet principal e 1 pet passivo.');
+                    } else if (type === 'triple') {
+                        player.tripleUpgrade = true;
+                        alert('Upgrade adquirido! Agora você pode ativar 1 pet principal e 2 pets passivos.');
+                    }
+
+                    this.disabled = true;
+                    this.textContent = 'Adquirido';
+                    updatePetsPanel(); // Atualiza o painel para mostrar os novos botões de slot
+                    return;
+                }
+
+                // --- Lógica para Baús (e outros itens não-upgrade) ---
+                // Determina se é um baú suportado
+                const isChest = (type === 'common' || type === 'rare' || type === 'legendary');
+
+                // Por padrão paga o custo base
+                let priceToPay = baseCost;
+
+                // Se for baú, aplicar desconto do Boto (função getChestPriceWithBoto deve existir)
+                if (isChest) {
+                    // Se não existir a função, mantemos o preço base para evitar erros
+                    if (typeof getChestPriceWithBoto === 'function') {
+                        priceToPay = getChestPriceWithBoto(player, baseCost, type);
+                    } else {
+                        // fallback seguro: usar baseCost
+                        priceToPay = baseCost;
+                    }
+                }
+
+                // Verifica elixir suficiente
+                if (player.elixir < priceToPay) {
+                    alert('Elixir insuficiente!');
+                    return;
+                }
+
+                // Debita e entrega o baú / item
+                player.elixir -= priceToPay;
+                updateElixirDisplay();
+                openBoughtChest(type);
+            });
+        });
+
+        // Coloque isto no seu script (por exemplo logo acima dos listeners da loja)
+        function buyPlant() {
+            const cost = Number(PLANT_COST) || 3200; // usa sua constante PLANT_COST
+            player.elixir = Number(player.elixir) || 0;
+            if (player.elixir < cost) {
+                alert('Você não tem Elixir suficiente (' + cost + ').');
+                return;
+            }
+            // subtrai uma vez só
+            player.elixir -= cost;
+            if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+
+            // Spawn da usina
+            spawnPlantAt(player.x + 80, player.y);
+            alert('Usina comprada e colocada no mapa!');
+        }
+
+        function handleMicoVisuals() {
+            const state = abilities[MICO_ACTIVE_NAME];
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            btnMicoAbility.disabled = true;
+            state.timerInterval = setInterval(() => {
+                const now = Date.now();
+                if (state.onCooldown && now < state.cooldownEnds) {
+                    const remaining = Math.ceil((state.cooldownEnds - now) / 1000);
+                    btnMicoAbility.textContent = `Mico (cooldown ${remaining}s)`;
+                } else {
+                    state.onCooldown = false;
+                    btnMicoAbility.disabled = false;
+                    btnMicoAbility.textContent = 'Ativar Mico (Trapaceiro)';
+                    clearInterval(state.timerInterval);
+                    state.timerInterval = null;
+                }
+            }, 1000);
+        }
+
+        // chamada para mostrar o botão apenas quando o Mico estiver no slot PRINCIPAL
+        // (você já faz algo similar em applyPetBuffs para outros pets)
+        function refreshMicoButtonVisibility() {
+            if (player.activePet === 'Mico') {
+                btnMicoAbility.style.display = 'block';
+                // se não estiver em cooldown, habilita
+                const rem = getAbilityCooldownRemaining(MICO_ACTIVE_NAME);
+                if (rem > 0) {
+                    abilities[MICO_ACTIVE_NAME].onCooldown = true;
+                    abilities[MICO_ACTIVE_NAME].cooldownEnds = Date.now() + rem; // apenas pra display
+                    handleMicoVisuals();
+                } else {
+                    btnMicoAbility.disabled = false;
+                    btnMicoAbility.textContent = 'Ativar Mico (Trapaceiro)';
+                }
+            } else {
+                btnMicoAbility.style.display = 'none';
+            }
+        }
+
+        // implementar a ativação do Mico
+        btnMicoAbility.addEventListener('click', () => {
+            const state = abilities[MICO_ACTIVE_NAME];
+            if (!state) return alert('Mico sem habilidade registrada.');
+            if (state.onCooldown && Date.now() < state.cooldownEnds) {
+                const rem = Math.ceil((state.cooldownEnds - Date.now()) / 1000);
+                return alert(`Mico em cooldown — espere ${rem}s.`);
+            }
+
+            // 1) resetar cooldowns de todas as habilidades exceto Mico
+            for (const name in abilities) {
+                if (!abilities.hasOwnProperty(name)) continue;
+                if (name === MICO_ACTIVE_NAME) continue; // NÃO reseta o próprio cooldown do Mico
+                const s = abilities[name];
+                if (!s) continue;
+                // resetar flags
+                s.onCooldown = false;
+                s.cooldownEnds = 0;
+                s.isActive = false;
+                s.activeEnds = 0;
+                // limpar timers e textos se existirem (pra evitar UI stale)
+                if (s.timerInterval) { clearInterval(s.timerInterval); s.timerInterval = null; }
+                // atualizar botão visual se existir (tentamos encontrar botão por convenção `btn<Nome>Ability`)
+                const btnId = 'btn' + name.replace(/[^a-zA-Z0-9]/g, '') + 'Ability';
+                const b = document.getElementById(btnId);
+                if (b) { b.disabled = false; b.textContent = (b.dataset && b.dataset.readyText) ? b.dataset.readyText : b.textContent.split('(')[0].trim(); }
+            }
+
+            // 2) colocar o Mico em cooldown (duração depende se Arara está ativa)
+            const hasArara = isPetActive('Arara-Azul');
+            const cooldownMs = hasArara ? MICO_ARARA_COOLDOWN_MS : MICO_BASE_COOLDOWN_MS;
+            state.onCooldown = true;
+            state.cooldownEnds = Date.now() + cooldownMs;
+            handleMicoVisuals();
+
+            // feedback ao jogador
+            alert('Mico ativado! Todos os cooldowns (exceto o do Mico) foram resetados. Use as habilidades novamente!');
+        });
+
+        function applyPetBuffs() {
+            // 1. Reseta todos os bônus e a UI para o estado padrão
+            player.speedMultiplier = 1;
+            player.extraEggChance = 0;
+            player.upgradeRarityChance = 0;
+            // Valor que será usado pelo proc da Onça (chance por segundo)
+            player.oncaProcChance = 0;
+            btnConvertEggs.style.display = 'none';
+            btnTatuAbility.style.display = 'none';
+
+            // Considera até 3 slots (principal + 2 passivos)
+            const allActivePets = [player.activePet, player.passivePet, player.passivePet2].filter(Boolean);
+            if (allActivePets.length === 0) {
+                activePetDisplay.innerHTML = '<div class="pet-name">Nenhum Pet Ativo</div><div class="pet-buff">Ative um pet para ganhar bônus!</div>';
+                // Se a Onça não está ativa, para o proc
+                stopOncaProc();
+                return;
+            }
+
+            // 2. Calcula os bônus base de todos os pets ativos
+            let totalSpeedPercent = 0;
+            let totalExtraEggChance = 0;
+            let totalUpgradeRarityChance = 0;
+
+            const getPetContribution = (petName) => {
+                const contributions = { speed: 0, extraEgg: 0, upgradeRarity: 0 };
+                if (!petName) return contributions;
+                switch (petName) {
+                    case "Capivara": contributions.speed = 10; break;
+                    case "Onça-Pintada": contributions.speed = 25; break;
+                    case "Dragão da Floresta":
+                        contributions.speed = 25;
+                        contributions.extraEgg = 0.05;
+                        break;
+                    case "Tucano": contributions.extraEgg = 0.05; break;
+                    case "Boto-cor-de-rosa": contributions.upgradeRarity = 0.15; break;
+                    case "Mico": contributions.extraEgg = 0.40; break;
+                    // se tiver outros pets com contribuições, adicione aqui
+                    default: break;
+                }
+                return contributions;
+            };
+
+            // Soma as contribuições dos pets ativos
+            allActivePets.forEach(petName => {
+                const contrib = getPetContribution(petName);
+                totalSpeedPercent += contrib.speed;
+                totalExtraEggChance += contrib.extraEgg;
+                totalUpgradeRarityChance += contrib.upgradeRarity;
+            });
+
+            // 3. Trata o proc da Onça (chance base por segundo)
+            let baseOncaChance = allActivePets.includes('Onça-Pintada') ? 0.02 : 0; // 2%/s se Onça estiver ativa
+            // (não dispara aqui — apenas define o valor; startOncaProc() deve usar player.oncaProcChance)
+
+            // 4. Aplica o efeito de DOBRA da Arara-Azul, se ela estiver ativa
+            const hasArara = allActivePets.includes('Arara-Azul');
+            if (hasArara) {
+                // duplicamos a contribuição de TODOS os outros pets (exceto a própria Arara)
+                const otherPets = allActivePets.filter(p => p !== 'Arara-Azul');
+                otherPets.forEach(op => {
+                    const c = getPetContribution(op);
+                    totalSpeedPercent += c.speed;
+                    totalExtraEggChance += c.extraEgg;
+                    totalUpgradeRarityChance += c.upgradeRarity;
+                });
+
+                // a Arara também dobra o efeito da Onça (se a Onça estiver ativa)
+                if (baseOncaChance > 0) baseOncaChance *= 2; // 2% -> 4%
+            }
+
+            // 5. Aplica os valores finais ao jogador (clamp por segurança)
+            player.speedMultiplier = 1 + (totalSpeedPercent / 100);
+            player.extraEggChance = Math.max(0, totalExtraEggChance);
+            player.upgradeRarityChance = Math.max(0, totalUpgradeRarityChance);
+
+            // atribui a chance que o proc da Onça deverá usar (startOncaProc deve ler esse valor)
+            player.oncaProcChance = Math.min(baseOncaChance, 1);
+
+            // Se a Onça estiver ativa, garante que o proc esteja rodando (startOncaProc() deve usar player.oncaProcChance)
+            if (player.oncaProcChance > 0) {
+                startOncaProc();
+            } else {
+                stopOncaProc();
+            }
+
+            // 6. Atualiza a UI com as informações e botões corretos (até 3 pets)
+            const main = player.activePet ? `<div class="pet-name">Principal: ${player.activePet}</div><div class="pet-buff">${PET_BUFFS[player.activePet].description}</div>` : '';
+            const pass1 = player.passivePet ? `<div class="pet-name" style="margin-top: 5px;">Passivo 1: ${player.passivePet}</div><div class="pet-buff">${PET_BUFFS[player.passivePet].description}</div>` : '';
+            const pass2 = player.passivePet2 ? `<div class="pet-name" style="margin-top: 5px;">Passivo 2: ${player.passivePet2}</div><div class="pet-buff">${PET_BUFFS[player.passivePet2].description}</div>` : '';
+            activePetDisplay.innerHTML = `${main}${pass1}${pass2}`;
+
+            // Mostra botões de habilidade APENAS se o pet estiver no slot PRINCIPAL
+            if (player.activePet === "Pica-Pau") btnConvertEggs.style.display = 'block';
+            if (player.activePet === "Tatu") btnTatuAbility.style.display = 'block';
+        }
+
+
+        const oncaProc = { intervalId: null };
+
+        function startOncaProc() {
+            // garante que não existam intervalos duplicados
+            stopOncaProc();
+
+            oncaProc.intervalId = setInterval(() => {
+                // só tenta quando a Onça estiver ativa (qualquer slot)
+                if (!isPetActive('Onça-Pintada')) return;
+
+                // ler a chance preparada por applyPetBuffs() (valor por segundo)
+                const chance = Math.min(player.oncaProcChance || 0, 1);
+
+                if (chance <= 0) return; // nada a fazer
+
+                if (Math.random() < chance) {
+                    // escolhe raridade: 70% comum, 25% raro, 5% lendário
+                    const r = Math.random();
+                    let chestType;
+                    if (r < 0.70) chestType = 'common';
+                    else if (r < 0.95) chestType = 'rare';
+                    else chestType = 'legendary';
+
+                    // abre baú grátis e pega loot (isFree: true para indicar origem)
+                    const loot = openChestImmediate(chestType, { isFree: true });
+
+                    // mostra feedback ao jogador
+                    if (typeof showLootPopup === 'function') {
+                        showLootPopup(loot, { title: 'Bônus Onça-Pintada' });
+                    } else {
+                        alert(`Bônus Onça-Pintada! Baú grátis (${chestType}):\n${loot.join('\n')}`);
+                    }
+                }
+            }, 1000);
+        }
+
+
+        function stopOncaProc() {
+            if (oncaProc.intervalId) {
+                clearInterval(oncaProc.intervalId);
+                oncaProc.intervalId = null;
+            }
+        }
+
+        function spawnPlantAt(x, y) {
+            const plant = {
+                id: 'plant_' + Date.now(),
+                type: 'plant',
+                x, y,
+                slots: { fuel: { type: null, count: 0 } },   // <-- usar objeto consistente
+                timers: { fuelRemainingFrames: 0 },
+                progressEggPercent: 0,
+                output: null,
+                superCooldown: 0,
+                fuelBarColor: '#c00',
+                progressBarColor: '#00f'
+            };
+            plants.push(plant);
+            if (typeof objects !== 'undefined') objects.push(plant);
+            return plant;
+        }
+
+        function maybeResurrectAsAlly(enemy) {
+            if (!isPetActive || typeof isPetActive !== 'function') return;
+            if (!isPetActive('Dragão da Floresta')) return;
+
+            if (resurrectedAllies.length >= FOREST_DRAGON_RESSURECT_MAX) return;
+
+            // evitar ressuscitar inimigos especiais (opcional)
+            if (enemy && enemy.noResurrect) return;
+
+            const allyHpMax = (typeof enemy.maxHp === 'number') ? enemy.maxHp :
+                ((typeof enemy.hp === 'number' && enemy.hp > 0) ? enemy.hp : ENEMY_BASE_HP);
+            const allyDamage = (typeof enemy.damagePerSec === 'number') ? enemy.damagePerSec :
+                ((typeof enemy.damage === 'number') ? enemy.damage : ENEMY_DAMAGE_PER_SEC);
+            const allySpeed = (typeof enemy.speed === 'number') ? Math.max(0.6, enemy.speed) : 1.8;
+
+            const ally = {
+                id: `res-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                x: enemy.x,
+                y: enemy.y,
+                hp: allyHpMax,
+                maxHp: allyHpMax,
+                damagePerSec: allyDamage,
+                speed: allySpeed,
+                attackRange: FOREST_DRAGON_RESSURECT_ATTACK_RANGE,
+                target: null,
+                isResurrected: true,
+                ttlSec: FOREST_DRAGON_RESSURECT_TTL_SEC,     // tempo de vida total
+                ttlRemaining: FOREST_DRAGON_RESSURECT_TTL_SEC
+            };
+
+            resurrectedAllies.push(ally);
+        }
+
+        function updateResurrectedAllies(dtSec) {
+            for (let i = resurrectedAllies.length - 1; i >= 0; i--) {
+                const a = resurrectedAllies[i];
+
+                // TTL: reduz e remove se acabar
+                if (typeof a.ttlRemaining === 'number') {
+                    a.ttlRemaining = Math.max(0, a.ttlRemaining - dtSec);
+                    if (a.ttlRemaining <= 0) {
+                        resurrectedAllies.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                // encontra o inimigo mais próximo
+                let nearest = null;
+                let nd = Infinity;
+                for (const e of enemies) {
+                    const d = Math.hypot(a.x - e.x, a.y - e.y);
+                    if (d < nd) { nd = d; nearest = e; }
+                }
+
+                if (nearest) {
+                    // persegue e ataca
+                    const ang = Math.atan2(nearest.y - a.y, nearest.x - a.x);
+                    a.x += Math.cos(ang) * a.speed;
+                    a.y += Math.sin(ang) * a.speed;
+
+                    const dist = Math.hypot(a.x - nearest.x, a.y - nearest.y);
+                    if (dist <= a.attackRange) {
+                        nearest.hp = Math.max(0, (nearest.hp || 0) - a.damagePerSec * dtSec);
+                    }
+                } else {
+                    // segue o player, comportamento de guarda
+                    const targetX = player.x + (Math.random() - 0.5) * FOREST_DRAGON_RESSURECT_FOLLOW_DISTANCE;
+                    const targetY = player.y + (Math.random() - 0.5) * FOREST_DRAGON_RESSURECT_FOLLOW_DISTANCE;
+                    const angBack = Math.atan2(targetY - a.y, targetX - a.x);
+                    const distBack = Math.hypot(targetX - a.x, targetY - a.y);
+                    if (distBack > 4) {
+                        a.x += Math.cos(angBack) * (a.speed * 0.9);
+                        a.y += Math.sin(angBack) * (a.speed * 0.9);
+                    }
+                }
+
+                // remoção se morrer em combate
+                if (a.hp <= 0) {
+                    resurrectedAllies.splice(i, 1);
+                    continue;
+                }
+            }
+        }
+
+
+        // --- Inimigo padrão inicial
+        function spawnEnemy(x = player.x + (Math.random() > 0.5 ? 300 : -300), y = player.y + (Math.random() - 0.5) * 200, hp = ENEMY_BASE_HP) {
+            const e = {
+                id: 'enemy_' + Date.now(),
+                x: x,
+                y: y,
+                hp: hp,
+                baseHp: hp,
+                speed: 1.2,
+                damagePerSec: ENEMY_DAMAGE_PER_SEC,
+                detectRange: ENEMY_DETECT_RANGE, // 250px (defina const lá em cima)
+                roamTimer: 0,
+                lastHitTime: 0
+            };
+            enemies.push(e);
+            return e;
+        }
+
+
+
+
+        // helper: retorna restante do cooldown em ms
+        function getAbilityCooldownRemaining(abilityName) {
+            const state = abilities[abilityName];
+            if (!state || !state.cooldownEnds) return 0;
+            const rem = state.cooldownEnds - Date.now();
+            return rem > 0 ? rem : 0;
+        }
+        function setAbilityCooldown(abilityName, ms) {
+            const state = abilities[abilityName];
+            if (!state) return;
+            state.onCooldown = true;
+            state.cooldownEnds = Date.now() + ms;
+            // config visual de cooldown (usamos handleAbilityVisuals se quiser mostrar contagem)
+            handleAbilityVisuals(abilityName, btnTucanoAbility, { cooldownText: 'Recarregando', readyText: 'Ativar Tucano', activeText: 'Ativo' });
+        }
+
+        // função principal que realiza a conversão dos eggs em prêmios
+        function tryActivateTucanoAbility() {
+            const state = abilities['Tucano'];
+            if (!state) { alert('Tucano sem habilidade registrada.'); return; }
+            // checa cooldown
+            if (state.onCooldown && Date.now() < state.cooldownEnds) {
+                const rem = Math.ceil((state.cooldownEnds - Date.now()) / 1000);
+                alert(`Tucano em cooldown — espere ${rem}s.`);
+                return;
+            }
+
+            // conta ovos no inventário (somente eggCommon + eggRare)
+            let commonCount = countItem('eggCommon');
+            let rareCount = countItem('eggRare');
+            let total = commonCount + rareCount;
+            if (total <= 0) {
+                alert('Você não tem ovos comuns ou raros suficientes para ativar o Tucano.');
+                return;
+            }
+
+            // define N e cooldown conforme Arara
+            const hasArara = isPetActive('Arara-Azul');
+            const N = hasArara ? TUCANO_ARARA_N : TUCANO_BASE_N;
+            const cooldownMs = hasArara ? TUCANO_ARARA_COOLDOWN_MS : TUCANO_COOLDOWN_MS;
+
+            // quantos triggers
+            let triggers = Math.floor(total / N);
+            if (triggers <= 0) {
+                alert(`Precisa de ${N} ovos (comuns + raros) para gerar 1 prêmio. Você tem ${total}.`);
+                return;
+            }
+            triggers = Math.min(triggers, TUCANO_MAX_TRIGGERS);
+
+            const results = [];
+            for (let i = 0; i < triggers; i++) {
+                // decide se este grupo terá lendário (se houver at least 1 rare disponível)
+                const willBeLegendary = rareCount > 0;
+
+                // consumos: priorizar 1 rare para garantir lendário (se aplicável), depois commons
+                let need = N;
+                if (willBeLegendary) {
+                    // consome 1 rare (garante lendário)
+                    removeItem('eggRare', 1);
+                    rareCount -= 1;
+                    need -= 1;
+                }
+
+                // consome commons preferencialmente
+                const fromCommon = Math.min(commonCount, need);
+                if (fromCommon > 0) {
+                    removeItem('eggCommon', fromCommon);
+                    commonCount -= fromCommon;
+                    need -= fromCommon;
+                }
+
+                // se ainda faltar, consome rares remanescentes
+                if (need > 0) {
+                    const fromRare = Math.min(rareCount, need);
+                    if (fromRare > 0) {
+                        removeItem('eggRare', fromRare);
+                        rareCount -= fromRare;
+                        need -= fromRare;
+                    }
+                }
+
+                // se por alguma razão não conseguimos consumir N (inconsistência), reverte e quebra
+                if (need > 0) {
+                    // Observação: na sua engine real você pode querer implementar rollback transacional
+                    results.push({ success: false, reason: 'inventory_mismatch' });
+                    break;
+                }
+
+                // decide prêmio e entrega
+                const prizeType = willBeLegendary ? 'eggLegendary' : 'eggMystic';
+                giveItem(prizeType, 1);
+                results.push({ success: true, prize: prizeType });
+            }
+
+            // aplica cooldown
+            setAbilityCooldown('Tucano', cooldownMs);
+
+            // feedback ao jogador
+            const successCount = results.filter(r => r.success).length;
+            if (successCount > 0) {
+                const summary = results.filter(r => r.success).map((r, idx) => `${idx + 1}: ${r.prize.replace('egg', 'Ovo ')}`).join('\n');
+                if (typeof showLootPopup === 'function') {
+                    showLootPopup(results.map(r => r.prize).filter(Boolean), { title: 'Tucano ativado!' });
+                } else {
+                    alert(`Tucano ativado! Prêmios gerados: ${successCount}\n${summary}`);
+                }
+            } else {
+                alert('Nenhum prêmio gerado (erro/inconsistência).');
+            }
+
+            updateHUD();
+        }
+
+        const PET_DAMAGE_PER_SEC = 10; // cada pet causa 10 de dano por segundo
+        const PET_ATTACK_RANGE = 150;  // alcance dos pets para atacar inimigos
+
+        window.onEnemyKilled = function (enemy, killer) {
+            try {
+                const cls = player && player.currentClass;
+                if (!cls || cls === 'nenhuma') return; // só quando uma classe está selecionada
+
+                // Determina quem foi o matador (string 'pet' / 'ally' ou objeto)
+                const k = (typeof killer === 'string') ? killer
+                    : (killer && killer._type) ? killer._type
+                        : (killer && killer.type) ? killer.type
+                            : (enemy && enemy._lastDamager) ? enemy._lastDamager
+                                : null;
+
+                const valid = (k === 'pet') ||
+                    (k === 'ally') ||
+                    (k === 'superDefender') ||
+                    (killer && killer.isResurrected) ||
+                    (killer && killer.type && /super|ally|defender/i.test(killer.type));
+
+                if (!valid) return; // só conta se foi pet/ally/defender/similar
+
+                // quantia por classe: Caçador = 300, demais classes selecionadas = 80
+                const amount = (cls === 'cacador') ? 300 : 80;
+
+                player.elixir = (Number(player.elixir) || 0) + amount;
+                if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+
+                const title = (cls === 'cacador') ? 'Caçador' : (typeof niceClassName === 'function' ? niceClassName(cls) : cls);
+                if (typeof showLootPopup === 'function') {
+                    showLootPopup([`+${amount} Elixir`], { title });
+                } else {
+                    console.log(`${title}: +${amount} Elixir (kill by ${k || 'unknown'})`);
+                }
+            } catch (err) {
+                console.warn('onEnemyKilled error', err);
+            }
+        };
+
+
+        function updateEnemies(dtSec) {
+            const ENEMY_ATTACK_RANGE_SD = 50; // alcance do ataque do inimigo contra SD (ajuste se quiser)
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+
+                // movimento: perseguir player se estiver no detect range
+                const distToPlayer = Math.hypot(e.x - player.x, e.y - player.y);
+                // Defina detectRange aqui:
+                const detectRange = (e.type === 'slime') ? SLIME_DETECT_RANGE : ENEMY_DETECT_RANGE * (typeof PLAYER_VISIBILITY_MULT !== 'undefined' ? PLAYER_VISIBILITY_MULT : 1);
+
+                if (e.type !== 'slime') {
+                    if (distToPlayer <= detectRange) {
+                        const ang = Math.atan2(player.y - e.y, player.x - e.x);
+                        e.x += Math.cos(ang) * e.speed;
+                        e.y += Math.sin(ang) * e.speed;
+
+                        // dano ao player quando próximo (preserva redução de dano do player)
+                        if (distToPlayer <= (player.size || 24) + 20) {
+                            const dmg = e.damagePerSec * dtSec;
+                            const reduction = player.damageReduction || 0;
+                            const finalDmg = dmg * (1 - reduction);
+                            // chama a função central de dano (vai decrementar player.hp e setar lastDamageAt)
+                            if (typeof applyDamageToPlayer === 'function') {
+                                applyDamageToPlayer(finalDmg, e);
+                            } else {
+                                // fallback se a função não existir: atualiza player.hp e lastDamageAt manualmente
+                                player.hp = Math.max(0, (player.hp || 0) - finalDmg);
+                                player.lastDamageAt = Date.now();
+                                if (typeof updateBars === 'function') updateBars();
+                            }
+                        }
+                    } else {
+                        // andar aleatório/roam (simples)
+                        e.roamTimer = e.roamTimer || 0;
+                        e.roamTimer -= dtSec;
+                        if (e.roamTimer <= 0) {
+                            e.roamTargetX = e.x + (Math.random() - 0.5) * 300;
+                            e.roamTargetY = e.y + (Math.random() - 0.5) * 300;
+                            e.roamTimer = 1 + Math.random() * 3;
+                        } else {
+                            const ang = Math.atan2(e.roamTargetY - e.y, e.roamTargetX - e.x);
+                            e.x += Math.cos(ang) * (e.speed * 0.6);
+                            e.y += Math.sin(ang) * (e.speed * 0.6);
+                        }
+                    }
+                }
+
+                // dano a SuperDefenders próximos
+                if (superDefenders && superDefenders.length > 0) {
+                    for (let j = superDefenders.length - 1; j >= 0; j--) {
+                        const sd = superDefenders[j];
+                        const distSd = Math.hypot(e.x - sd.x, e.y - sd.y);
+                        if (distSd <= ENEMY_ATTACK_RANGE_SD) {
+                            // inimigo ataca o SD (proporcional ao damagePerSec)
+                            sd.hp = Math.max(0, sd.hp - (e.damagePerSec * dtSec));
+                            // opcional: se você quiser que o inimigo foque SD, set e.target = sd
+                        }
+                    }
+                }
+
+                // dano por pets (mantive sua lógica: pets atacam automaticamente quando inimigo perto do player ou pets)
+                const totalPets = (player.unlockedPets && player.unlockedPets.length) || (typeof activePets !== 'undefined' && activePets.length) || 0;
+                if (totalPets > 0) {
+                    const dPet = totalPets * PET_DAMAGE_PER_SEC * dtSec;
+                    const distForPet = Math.hypot(e.x - player.x, e.y - player.y);
+                    if (distForPet <= PET_ATTACK_RANGE) {
+                        e.hp = Math.max(0, e.hp - dPet);
+                        e._lastDamager = 'pet';
+                    } else if (typeof activePets !== 'undefined') {
+                        for (const p of activePets) {
+                            if (Math.hypot(e.x - p.x, e.y - p.y) <= PET_ATTACK_RANGE) {
+                                e.hp = Math.max(0, e.hp - (PET_DAMAGE_PER_SEC * dtSec));
+                            }
+                        }
+                    }
+                }
+
+                // morte: respawn com +50 de HP
+
+                // SUBSTITUA POR ESTE BLOCO CORRIGIDO:
+                if (e.hp <= 0) {
+                    const deadEnemy = enemies[i];
+                    maybeResurrectAsAlly(deadEnemy);
+                    try {
+                        if (typeof onEnemyKilled === 'function') {
+                            onEnemyKilled(e, e._lastDamager || null);
+                        }
+                    } catch (err) { console.warn('onEnemyKilled call failed', err); }
+
+                    enemies.splice(i, 1);
+
+                    // CORREÇÃO APLICADA AQUI:
+                    // Apenas inimigos normais devem triggar o respawn de um inimigo normal.
+                    // O slime tem sua própria lógica de respawn/duplicação.
+                    if (e.type !== 'slime') {
+                        const newHp = (e.baseHp || ENEMY_BASE_HP) + ENEMY_HP_INCREASE_ON_RESPAWN;
+                        scheduleEnemyRespawn(
+                            player.x + (Math.random() > 0.5 ? 400 : -400),
+                            player.y + (Math.random() - 0.5) * 200,
+                            newHp
+                        );
+                    }
+                    continue;
+                }
+            }
+        }
+
+        // --- Player HP / dano / regen (adicione/ajuste no player object: player.hp = 200)
+        player.hp = player.hp || 200;
+        player.lastDamageAt = player.lastDamageAt || 0;
+
+        function applyDamageToPlayer(amount, source) {
+            // aplica redução por pets/armadura se tiver
+            player.hp = Math.max(0, player.hp - amount);
+            player.lastDamageAt = Date.now();
+            // atualizar UI de vida se tiver
+            if (typeof updateBars === 'function') updateBars();
+        }
+
+        // regen tick (chame em setInterval ou no loop principal com timer)
+        function handlePlayerRegen() {
+            if (player.hp <= 0) return;
+            const since = Date.now() - (player.lastDamageAt || 0);
+            if (since >= 7000) { // 7s sem dano -> regen ativa
+                // regen 10 HP/segundo -> aplicar por frame (supondo 60FPS)
+                const regenPerFrame = 10 / 60;
+                player.hp = Math.min(player.maxHp || 200, player.hp + regenPerFrame);
+                if (typeof updateBars === 'function') updateBars();
+            }
+        }
+
+        const hpDisplay = document.getElementById('hpDisplay');
+
+        function updateBars() {
+            if (hpDisplay) {
+                const maxHp = player.maxHp || 200;
+                hpDisplay.textContent = `HP: ${Math.round(player.hp)} / ${maxHp}`;
+            }
+            if (elixirDisplay) {
+                elixirDisplay.textContent = `Elixir: ${player.elixir}`;
+            }
+        }
+
+
+        function petsDealDamageToEnemies(dtSec) {
+            // dtSec = delta tempo em segundos
+            // calcula total de pets (desconsidera se "ativo" — como pediu: todos atacam)
+            const totalPetsCount = player.unlockedPets ? player.unlockedPets.length : 0;
+            if (totalPetsCount === 0) return;
+
+            enemies.forEach(e => {
+                // se o inimigo estiver dentro de 150px de qualquer pet (vamos usar player como referência
+                // se os pets seguem o player; caso seus pets tenham posições próprias, itere por eles)
+                // Aqui: usamos distância entre player e inimigo assumindo pets girando em torno do player
+                const dist = Math.hypot(e.x - player.x, e.y - player.y);
+                if (dist <= 150) {
+                    const dmg = totalPetsCount * 10 * dtSec; // 10 DPS por pet
+                    e.hp = Math.max(0, e.hp - dmg);
+                }
+            });
+        }
+
+        function feedEggToPlant(plant, eggType, qty = 1) {
+            if (!plant) return;
+
+            // garantimos que exista o campo
+            plant.progressEggPercent = Number(plant.progressEggPercent || 0);
+
+            // obter quanto cada unidade do eggType adiciona (em %). Se não houver getter, usa 10% por unidade.
+            let progressPerEgg = 10;
+            try {
+                if (typeof getProgressPerEgg === 'function') {
+                    const maybe = Number(getProgressPerEgg(eggType));
+                    if (!isNaN(maybe)) progressPerEgg = maybe;
+                }
+            } catch (e) {
+                // se getProgressPerEgg lançar, ignoramos e usamos o fallback
+            }
+
+            // quantidade a acrescentar
+            const add = Number(qty) * progressPerEgg;
+            plant.progressEggPercent = Math.max(0, Math.min(100, plant.progressEggPercent + add));
+
+            // se chegou a 100% -> não spawnar automaticamente sem combustível
+            if (plant.progressEggPercent >= 100) {
+                plant.progressEggPercent = 100;
+                plant.waitingForFuel = true;
+
+                // evita gatilhos em loop: se já existe cooldown, respeita
+                const now = Date.now();
+                plant.superCooldown = plant.superCooldown || 0;
+
+                // checar combustível disponível:
+                const hasFuelSlot = plant.slots && plant.slots.fuel && Number(plant.slots.fuel.count) > 0;
+                const hasFuelTimer = plant.timers && Number(plant.timers.fuelRemainingFrames || 0) > 0;
+                const hasFuel = hasFuelSlot || hasFuelTimer;
+
+                // Se já tem combustível e não está em cooldown, tenta completar a planta agora.
+                if (hasFuel && now > plant.superCooldown) {
+                    // chama a rotina de conclusão — a onPlantCompleted deve cuidar de consumir 1 madeira
+                    if (typeof onPlantCompleted === 'function') {
+                        // define pequeno cooldown para evitar chamadas múltiplas muito rápidas
+                        plant.superCooldown = now + (5 * 1000); // 5s
+                        onPlantCompleted(plant);
+                    } else {
+                        // fallback: apenas limpa o waitingForFuel (se não houver onPlantCompleted)
+                        plant.waitingForFuel = false;
+                        plant.progressEggPercent = 0;
+                    }
+                } else {
+                    // não tem combustível: atualiza UI para indicar "aguardando madeira"
+                    if (typeof updatePlantPanel === 'function') updatePlantPanel(plant);
+                    if (typeof updateHUD === 'function') updateHUD();
+                }
+            } else {
+                // se não atingiu 100%, garante que não está em waitingForFuel
+                plant.waitingForFuel = false;
+                // atualiza UI se disponível
+                if (typeof updatePlantPanel === 'function') updatePlantPanel(plant);
+            }
+
+            // retorna percentual atualizado por conveniência
+            return plant.progressEggPercent;
+        }
+
+        function consumeOneWoodFromPlant(plant) {
+            if (!plant || !plant.slots) return;
+
+            // frames que correspondem a 1 madeira
+            const framesPerWood = FUEL_WOOD_DURATION_SEC * FPS;
+
+            plant.timers = plant.timers || { fuelRemainingFrames: 0 };
+            plant.slots.fuel = plant.slots.fuel || { type: null, count: 0 };
+
+            // decrementa o contador de madeiras se existir
+            if (plant.slots.fuel.count > 0) {
+                plant.slots.fuel.count = Math.max(0, plant.slots.fuel.count - 1);
+            }
+
+            // decrementa frames (se programou via buyFuelPackForPlant)
+            plant.timers.fuelRemainingFrames = Math.max(0, (plant.timers.fuelRemainingFrames || 0) - framesPerWood);
+
+            // se zerou, remove o tipo
+            if (plant.timers.fuelRemainingFrames <= 0) {
+                plant.timers.fuelRemainingFrames = 0;
+                plant.slots.fuel.type = null;
+                plant.slots.fuel.count = 0;
+            }
+
+            // atualiza UI/painel
+            if (typeof updatePlantPanel === 'function') updatePlantPanel(plant);
+            if (typeof renderPlantSlots === 'function') renderPlantSlots();
+        }
+
+        function spawnSuperDefender(x, y, plantRef) {
+            console.log('spawnSuperDefender chamado em', { x, y, plantId: plantRef && plantRef.id, time: Date.now() });
+            const sd = {
+                id: 'super_' + Date.now(),
+                x, y,
+                hp: SUPERDEF_HP,
+                damagePerSec: SUPERDEF_DPS,
+                plantRefId: plantRef?.uid ?? null,
+                speed: 1.6,
+                detectRange: 800,    // enxerga inimigos até 800px
+                attackRange: 48,     // distancia pra começar a atacar
+                followOffset: {      // offset relativo ao player quando estiver em modo "seguir"
+                    x: (Math.random() - 0.5) * 60,
+                    y: (Math.random() - 0.5) * 60
+                },
+                buffRange: 100       // se estiver a <= 100px do player, aplica buff defensivo (agregado)
+            };
+            superDefenders.push(sd);
+            return sd;
+        }
+
+        function updateSuperDefenders(dtSec) {
+            const PRIORITY_PLAYER_THREAT_RANGE = 300; // inimigo perto do player tem prioridade
+            const HEAL_PER_SD_RADIUS_DEFAULT = 50;    // padrão caso algum SD não tenha buffRange
+            const HEAL_PER_SEC = 20;                  // 20 HP por segundo por SD (quando o player está dentro do raio)
+            const perSdBuff = 0.12;                   // cada SD contribui 12% de redução de dano quando perto
+            const maxTotalBuff = 0.5;
+
+            // 1) Atualiza movimento/ataque de cada SD (prioriza inimigos perto do player)
+            for (let i = superDefenders.length - 1; i >= 0; i--) {
+                const sd = superDefenders[i];
+
+                // encontra inimigo mais próximo do SD e do player
+                let nearestToSd = null, ndSd = Infinity;
+                let nearestToPlayer = null, ndPlayer = Infinity;
+                for (const e of enemies) {
+                    const dSd = Math.hypot(sd.x - e.x, sd.y - e.y);
+                    if (dSd < ndSd) { ndSd = dSd; nearestToSd = e; }
+                    const dPl = Math.hypot(player.x - e.x, player.y - e.y);
+                    if (dPl < ndPlayer) { ndPlayer = dPl; nearestToPlayer = e; }
+                }
+
+                // escolhe alvo: primeiro quem ameaça o player, depois inimigo perto do SD
+                let target = null;
+                if (nearestToPlayer && ndPlayer <= PRIORITY_PLAYER_THREAT_RANGE && ndPlayer <= sd.detectRange) {
+                    target = nearestToPlayer;
+                } else if (nearestToSd && ndSd <= sd.detectRange) {
+                    target = nearestToSd;
+                }
+
+                if (target) {
+                    // perseguir e atacar target
+                    const ang = Math.atan2(target.y - sd.y, target.x - sd.x);
+                    sd.x += Math.cos(ang) * sd.speed;
+                    sd.y += Math.sin(ang) * sd.speed;
+
+                    const distToTarget = Math.hypot(sd.x - target.x, sd.y - target.y);
+                    if (distToTarget <= sd.attackRange) {
+                        target.hp = Math.max(0, target.hp - sd.damagePerSec * dtSec);
+                    }
+                } else {
+                    // segue o player (modo guarda)
+                    const targetX = player.x + sd.followOffset.x;
+                    const targetY = player.y + sd.followOffset.y;
+                    const angBack = Math.atan2(targetY - sd.y, targetX - sd.x);
+                    const distBack = Math.hypot(targetX - sd.x, targetY - sd.y);
+                    const followSpeed = sd.speed * 0.9;
+                    if (distBack > 6) {
+                        sd.x += Math.cos(angBack) * followSpeed;
+                        sd.y += Math.sin(angBack) * followSpeed;
+                    } else {
+                        sd.x += (Math.random() - 0.5) * 0.4;
+                        sd.y += (Math.random() - 0.5) * 0.4;
+                    }
+                }
+
+                // morte
+                if (sd.hp <= 0) {
+                    superDefenders.splice(i, 1);
+                }
+            }
+
+            // 2) Buff defensivo agregado: redução de dano baseada em SDs próximos ao player
+            let nearbyCount = 0;
+            for (const sd of superDefenders) {
+                const d = Math.hypot(sd.x - player.x, sd.y - player.y);
+                const range = (typeof sd.buffRange === 'number') ? sd.buffRange : HEAL_PER_SD_RADIUS_DEFAULT;
+                if (d <= range) nearbyCount++;
+            }
+            const totalBuff = Math.min(maxTotalBuff, nearbyCount * perSdBuff);
+            player.damageReduction = totalBuff; // entre 0 e maxTotalBuff
+
+            // 3) Cura passiva: contar SDs que estejam a distância do próprio buffRange e curar usando player.hp
+            let healSources = 0;
+            for (const sd of superDefenders) {
+                const d = Math.hypot(sd.x - player.x, sd.y - player.y);
+                const range = (typeof sd.buffRange === 'number') ? sd.buffRange : HEAL_PER_SD_RADIUS_DEFAULT;
+                if (d <= range) healSources++;
+            }
+            if (healSources > 0) {
+                const healAmount = healSources * HEAL_PER_SEC * dtSec;
+                player.hp = Math.min(player.maxHealth || 200, (player.hp || 0) + healAmount);
+                if (typeof updateBars === 'function') updateBars();
+            }
+        }
+
+
+        // ligar evento do botão
+        btnTucanoAbility.addEventListener('click', () => tryActivateTucanoAbility());
+
+        const originalApplyPetBuffs = applyPetBuffs;
+        applyPetBuffs = function () {
+            originalApplyPetBuffs();
+
+            // botão visível apenas se Tucano estiver como pet principal
+            if (player.activePet === 'Tucano') {
+                btnTucanoAbility.style.display = 'block';
+                // se estiver em cooldown, desativa visualmente
+                const rem = getAbilityCooldownRemaining('Tucano');
+                if (rem > 0) {
+                    btnTucanoAbility.disabled = true;
+                    // usar handleAbilityVisuals para mostrar contagem (criado antes)
+                    handleAbilityVisuals('Tucano', btnTucanoAbility, { cooldownText: 'Recarregando', readyText: 'Ativar Tucano', activeText: 'Ativo' });
+                } else {
+                    btnTucanoAbility.disabled = false;
+                    btnTucanoAbility.textContent = 'Ativar Tucano';
+                }
+            } else {
+                btnTucanoAbility.style.display = 'none';
+            }
+        };
+
+        const shopPanel = document.getElementById('shopPanel'); const petsPanel = document.getElementById('petsPanel'); const petList = document.getElementById('petList');
+        document.getElementById('btnOpenShop').addEventListener('click', () => {
+            const tripleUpgradeItem = document.getElementById('tripleUpgradeShopItem');
+            if (player.dualUpgrade) {
+                tripleUpgradeItem.style.display = 'block';
+            } else {
+                tripleUpgradeItem.style.display = 'none';
+            }
+            shopPanel.style.display = 'block';
+        });
+        document.getElementById('btnCloseShop').addEventListener('click', () => {
+            shopPanel.style.display = 'none';
+        });
+        document.getElementById('btnMyPets').addEventListener('click', () => { petsPanel.style.display = 'block'; }); document.getElementById('btnClosePets').addEventListener('click', () => { petsPanel.style.display = 'none'; });
+
+        // chama no início do jogo para spawnar o primeiro inimigo
+        if (enemies.length === 0) spawnEnemy();
+
+        function updateHUD() {
+            hud.innerHTML = '';
+            const placeholder = 'data:image/svg+xml;utf8,' +
+                encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="%23444"/><text x="50%" y="55%" font-size="10" text-anchor="middle" fill="#fff">?</text></svg>');
+
+            for (let i = 0; i < player.invSize; i++) {
+                const slotDiv = document.createElement('div');
+                slotDiv.className = 'slot' + (i === player.selectedSlot ? ' selected' : '');
+                slotDiv.addEventListener('click', () => { player.selectedSlot = i; updateHUD(); });
+
+                const item = player.inventory[i];
+                if (item) {
+                    const imgEl = document.createElement('img');
+                    imgEl.draggable = false;
+                    imgEl.alt = item.type;
+
+                    // usa a src da imagem se existir, caso contrário o placeholder
+                    imgEl.src = (imgs[item.type] && imgs[item.type].src) ? imgs[item.type].src : placeholder;
+
+                    // fallback caso a imagem esteja "broken"
+                    imgEl.onerror = () => { imgEl.onerror = null; imgEl.src = placeholder; };
+
+                    slotDiv.appendChild(imgEl);
+
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'count';
+                    countSpan.textContent = item.count;
+                    slotDiv.appendChild(countSpan);
+                }
+
+                hud.appendChild(slotDiv);
+            }
+
+            updateHatchButtonState();
+        }
+
+        function giveItem(type, count = 1) { for (const item of player.inventory) { if (item && item.type === type && item.count < EGG_STACK_LIMIT) { const spaceLeft = EGG_STACK_LIMIT - item.count; const amountToAdd = Math.min(count, spaceLeft); item.count += amountToAdd; count -= amountToAdd; if (count === 0) { updateHUD(); return; } } } if (count > 0) { let emptySlotIndex = player.inventory.findIndex(slot => !slot); if (emptySlotIndex === -1 && player.inventory.length < player.invSize) { emptySlotIndex = player.inventory.length; } if (emptySlotIndex !== -1) { player.inventory[emptySlotIndex] = { type: type, count: count }; } else { alert(`Inventário cheio! ${count}x ${type.replace('egg', 'ovo')} foram perdidos.`); } } updateHUD(); }
+        function countItem(itemType) { let total = 0; player.inventory.forEach(item => { if (item && item.type === itemType) { total += item.count; } }); return total; }
+        function removeItem(itemType, amount) { let amountToRemove = amount; for (let i = player.inventory.length - 1; i >= 0; i--) { const item = player.inventory[i]; if (item && item.type === itemType) { if (item.count > amountToRemove) { item.count -= amountToRemove; amountToRemove = 0; } else { amountToRemove -= item.count; player.inventory[i] = null; } } if (amountToRemove === 0) break; } updateHUD(); }
+
+        // REATORADO PARA MELHORAR A INTERFACE (UX)
+        function updatePetsPanel() {
+            const instruction = document.getElementById('petPanelInstruction');
+            if (player.tripleUpgrade) {
+                instruction.textContent = "Ative 1 pet Principal e até 2 pets Passivos (sem botão).";
+            } else if (player.dualUpgrade) {
+                instruction.textContent = "Ative 1 pet Principal e 1 pet Passivo (sem botão).";
+            } else {
+                instruction.textContent = "Ative 1 pet Principal. Compre upgrades para mais slots.";
+            }
+
+            petList.innerHTML = '';
+            if (player.unlockedPets.length === 0) { petList.innerHTML = '<p>Você ainda não desbloqueou nenhum pet.</p>'; return; }
+
+            player.unlockedPets.forEach(petName => {
+                const entry = document.createElement('div'); entry.className = 'pet-entry';
+                const petInfoHTML = `<div class="pet-info"><strong>${petName}</strong><span>${PET_BUFFS[petName].description}</span></div>`;
+                const buttonsContainer = document.createElement('div'); buttonsContainer.className = 'pet-buttons';
+
+                // Lógica para desativar o pet de qualquer slot em que ele esteja
+                const deactivatePet = () => {
+                    if (player.activePet === petName) player.activePet = null;
+                    if (player.passivePet === petName) player.passivePet = null;
+                    if (player.passivePet2 === petName) player.passivePet2 = null;
+                    applyPetBuffs();
+                    updatePetsPanel();
+                };
+
+                // Botão Principal
+                const btnPrimary = document.createElement('button');
+                if (player.activePet === petName) {
+                    btnPrimary.textContent = 'Desativar (P)';
+                    btnPrimary.onclick = deactivatePet;
+                } else {
+                    btnPrimary.textContent = 'Ativar (P)';
+                    btnPrimary.onclick = () => { deactivatePet(); player.activePet = petName; applyPetBuffs(); updatePetsPanel(); };
+                }
+                buttonsContainer.appendChild(btnPrimary);
+
+                // Botão Passivo 1
+                if (player.dualUpgrade) {
+                    const btnPassive1 = document.createElement('button');
+                    if (PET_BUFFS[petName].hasActiveAbility && petName !== 'Mico') {
+                        btnPassive1.textContent = 'Passivo (N/A)'; btnPassive1.disabled = true;
+                    } else {
+                        if (player.passivePet === petName) {
+                            btnPassive1.textContent = 'Desativar (S1)';
+                            btnPassive1.onclick = deactivatePet;
+                        } else {
+                            btnPassive1.textContent = 'Ativar (S1)';
+                            btnPassive1.onclick = () => { deactivatePet(); player.passivePet = petName; applyPetBuffs(); updatePetsPanel(); };
+                        }
+                    }
+                    buttonsContainer.appendChild(btnPassive1);
+                }
+
+                // Botão Passivo 2
+                if (player.tripleUpgrade) {
+                    const btnPassive2 = document.createElement('button');
+                    if (PET_BUFFS[petName].hasActiveAbility) {
+                        btnPassive2.textContent = 'Passivo (N/A)'; btnPassive2.disabled = true;
+                    } else {
+                        if (player.passivePet2 === petName) {
+                            btnPassive2.textContent = 'Desativar (S2)';
+                            btnPassive2.onclick = deactivatePet;
+                        } else {
+                            btnPassive2.textContent = 'Ativar (S2)';
+                            btnPassive2.onclick = () => { deactivatePet(); player.passivePet2 = petName; applyPetBuffs(); updatePetsPanel(); };
+                        }
+                    }
+                    buttonsContainer.appendChild(btnPassive2);
+                }
+
+                entry.innerHTML = petInfoHTML;
+                entry.appendChild(buttonsContainer);
+                petList.appendChild(entry);
+            });
+        }
+
+        function canDrawImage(img) {
+            return img && img.complete && img.naturalWidth && img.naturalWidth > 0 && !img._broken;
+        }
+
+        function updateHatchButtonState() { const selectedItem = player.inventory[player.selectedSlot]; btnHatch.disabled = !selectedItem; }
+        function updateElixirDisplay() { elixirDisplay.textContent = `Elixir: ${player.elixir}`; }
+        function openBoughtChest(chestType) { chestsOpenedCounter++; const r = Math.random(); let eggAmount = 1; if (r < 0.05) eggAmount = 3; else if (r < 0.30) eggAmount = 2; let eggsThisChest = []; for (let j = 0; j < eggAmount; j++) { eggsThisChest.push(getEggForChest(chestType)); } eggsThisChest = ensureLoboGuaraBonus(eggsThisChest); const lootReceived = []; for (const eggType of eggsThisChest) { giveItem(eggType, 1); lootReceived.push("Ovo " + eggType.replace('egg', '')); } alert(`Dentro do baú você encontrou: ${lootReceived.join(', ')}`); }
+        function ensureLoboGuaraBonus(eggTypesArray) { if (isPetActive('Lobo-Guará') && chestsOpenedCounter % 3 === 0) { const rareChoices = ['eggEpic', 'eggMystic', 'eggLegendary']; eggTypesArray[0] = rareChoices[Math.floor(Math.random() * rareChoices.length)]; } return eggTypesArray; }
+        function getEggForChest(chestType) { let eggType; const r = Math.random(); if (chestType === 'legendary') { if (r < 0.40) eggType = 'eggLegendary'; else if (r < 0.75) eggType = 'eggMystic'; else if (r < 0.95) eggType = 'eggEpic'; else eggType = 'eggRare'; } else if (chestType === 'rare') { if (r < 0.01) eggType = 'eggLegendary'; else if (r < 0.08) eggType = 'eggMystic'; else if (r < 0.38) eggType = 'eggEpic'; else if (r < 0.78) eggType = 'eggRare'; else eggType = 'eggCommon'; } else { if (r < 0.02) eggType = 'eggEpic'; else if (r < 0.17) eggType = 'eggRare'; else eggType = 'eggCommon'; } if (isPetActive('Boto-cor-de-rosa') && Math.random() < 0.15) { eggType = upgradeRarity(eggType); } return eggType; }
+        function upgradeRarity(eggType) { const rarities = ['eggCommon', 'eggRare', 'eggEpic', 'eggMystic', 'eggLegendary']; const currentIndex = rarities.indexOf(eggType); if (currentIndex < rarities.length - 1) { return rarities[currentIndex + 1]; } return eggType; }
+        function updatePetMovements() { activePets.forEach(pet => { const distance = Math.hypot(player.x - pet.x, player.y - pet.y); if (distance > player.size) { let currentSpeed; if (distance >= 90) { currentSpeed = player.baseSpeed * 1.5; } else { currentSpeed = player.baseSpeed * 0.95; } const angle = Math.atan2(player.y - pet.y, player.x - pet.x); pet.x += Math.cos(angle) * currentSpeed; pet.y += Math.sin(angle) * currentSpeed; } }); }
+        function updatePlayerMovement() { let currentSpeed = player.baseSpeed * (player.speedMultiplier || 1); let dx = 0; let dy = 0; if (keys['w'] || keys['ArrowUp']) dy -= 1; if (keys['s'] || keys['ArrowDown']) dy += 1; if (keys['a'] || keys['ArrowLeft']) dx -= 1; if (keys['d'] || keys['ArrowRight']) dx += 1; if (dx !== 0 || dy !== 0) { let newX = player.x + dx * currentSpeed; let newY = player.y + dy * currentSpeed; if (Math.hypot(newX, newY) < islandRadius - player.size) { player.x = newX; player.y = newY; } } }
+        function spawnChest() { const angle = Math.random() * 2 * Math.PI; const radius = Math.random() * (islandRadius - chestSize); const x = Math.cos(angle) * radius; const y = Math.sin(angle) * radius; const randomChance = Math.random(); let type; if (randomChance <= 0.10) type = 'legendary'; else if (randomChance <= 0.40) type = 'rare'; else type = 'common'; chests.push({ x, y, type }); }
+        function openChestImmediate(chestType, options = {}) {
+            const isFree = !!options.isFree;
+            chestsOpenedCounter++;
+
+            // Quantidade base de ovos (1, 2 ou 3) - mesma regra que você já tinha
+            const r = Math.random();
+            let eggAmount = 1;
+            if (r < 0.05) eggAmount = 3;
+            else if (r < 0.30) eggAmount = 2;
+
+            // soma chance extra de ovo proveniente de pets (Tucano, Dragão, etc.)
+            let extraEggChance = 0;
+            if (isPetActive('Tucano')) extraEggChance += 0.05; // 5%
+            if (isPetActive('Dragão da Floresta') || isPetActive('Dragao da Floresta')) extraEggChance += 0.05; // 5%
+
+            // Mico: passiva +40% de chance de ovo extra (com Arara isso vira +80%).
+            if (isPetActive('Mico')) {
+                // se Arara estiver equipada/ativa, ela dobra os efeitos dos demais pets
+                if (isPetActive('Arara-Azul')) extraEggChance += 0.80;
+                else extraEggChance += 0.40;
+            }
+
+            // aplicar chance extra (cada sucesso adiciona +1 ovo)
+            if (extraEggChance > 0 && Math.random() < extraEggChance) {
+                eggAmount++;
+            }
+
+            // gerar tipos de ovos
+            const eggsThisChest = [];
+            for (let j = 0; j < eggAmount; j++) {
+                eggsThisChest.push(getEggForChest(chestType));
+            }
+
+            // aplicar bônus do Lobo-Guará (ou outro processamento adicional)
+            const finalEggs = ensureLoboGuaraBonus(eggsThisChest);
+
+            // entregar loot ao jogador
+            const lootReceived = [];
+            for (const eggType of finalEggs) {
+                giveItem(eggType, 1);
+                lootReceived.push("Ovo " + eggType.replace('egg', ''));
+            }
+
+            // Retorna o array para quem chamou (assim chamador decide como mostrar)
+            return lootReceived;
+        }
+
+        function getEggStorage() {
+            if (player && player.eggs && typeof player.eggs === 'object') return player.eggs;
+            if (player && player.inventory && player.inventory.eggs && typeof player.inventory.eggs === 'object') return player.inventory.eggs;
+            // se não existir, cria um storage padrão em player.eggs
+            player.eggs = player.eggs || {};
+            return player.eggs;
+        }
+
+        function getEggCount(type) {
+            const store = getEggStorage();
+            return Number(store[type] || 0);
+        }
+
+        function decrementEgg(type, amount = 1) {
+            const store = getEggStorage();
+            store[type] = Math.max(0, (Number(store[type] || 0) - amount));
+        }
+
+        function eggItemToRarityKey(itemType) {
+            // itemType exemplo: 'eggCommon' -> retorna 'common'
+            if (!itemType) return null;
+            return {
+                eggCommon: 'common',
+                eggRare: 'rare',
+                eggEpic: 'epic',
+                eggMystic: 'mystic',
+                eggLegendary: 'legendary'
+            }[itemType] || null;
+        }
+
+        function pickHighestAvailableEggType() {
+            // prioriza inventário real (retorna strings como 'eggLegendary' etc)
+            const invOrder = ['eggLegendary', 'eggMystic', 'eggEpic', 'eggRare', 'eggCommon'];
+            for (const it of invOrder) {
+                if (typeof countItem === 'function' && countItem(it) > 0) return it;
+            }
+
+            // fallback para storage legado (player.eggs) - retorna a chave simples 'legendary','mystic',...
+            const storOrder = ['legendary', 'mystic', 'epic', 'rare', 'common'];
+            const store = getEggStorage();
+            for (const k of storOrder) {
+                if (Number(store[k] || 0) > 0) return k;
+            }
+
+            return null;
+        }
+
+        /* ------------------ BOTÃO "COLOCAR OVO" (HTML overlay) ------------------ */
+
+        let placeEggBtn = null;
+        let placeEggTargetPlant = null;
+
+        function initPlaceEggButton() {
+            if (placeEggBtn) return;
+            placeEggBtn = document.createElement('button');
+            placeEggBtn.id = 'place-egg-btn';
+            placeEggBtn.textContent = 'Colocar ovo';
+            Object.assign(placeEggBtn.style, {
+                position: 'absolute',
+                display: 'none',
+                zIndex: 9999,
+                padding: '6px 10px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                borderRadius: '6px',
+                // aparência mínima para combinar com HUD
+                background: '#ffcc00',
+                border: '2px solid #a86f00',
+                color: '#000'
+            });
+            document.body.appendChild(placeEggBtn);
+
+            placeEggBtn.addEventListener('click', () => {
+                if (!placeEggTargetPlant) return;
+                tryPlaceEggOnPlant(placeEggTargetPlant);
+            });
+        }
+
+        // chama a cada frame (por ex. dentro do seu loop de desenho) para atualizar posição/visibilidade.
+        function updatePlaceEggButtonPositionAndVisibility() {
+            if (!placeEggBtn) return;
+
+            // encontra a usina mais próxima que esteja a <= PLACE_EGG_DISTANCE
+            let nearest = null;
+            let nearestDist = Infinity;
+            for (const p of plants) {
+                const dx = p.x - player.x;
+                const dy = p.y - player.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist <= PLACE_EGG_DISTANCE && dist < nearestDist) {
+                    nearest = p;
+                    nearestDist = dist;
+                }
+            }
+
+            // se não tem usina próxima: esconde botão
+            if (!nearest) {
+                placeEggBtn.style.display = 'none';
+                placeEggTargetPlant = null;
+                return;
+            }
+
+            // checa se o jogador tem algum ovo (compat com inventário e storage legado)
+            const availableEggType = pickHighestAvailableEggType();
+            if (!availableEggType) {
+                placeEggBtn.textContent = 'Sem ovos';
+                placeEggBtn.disabled = true;
+                // opcional: ainda mostra o botão desabilitado? escolhi esconder pra UX limpa
+                placeEggBtn.style.display = 'none';
+                placeEggTargetPlant = null;
+                return;
+            } else {
+                // exibe label amigável (ex: eggLegendary -> Lendário)
+                const nice = {
+                    eggCommon: 'Comum',
+                    eggRare: 'Raro',
+                    eggEpic: 'Épico',
+                    eggMystic: 'Místico',
+                    eggLegendary: 'Lendário'
+                }[availableEggType] || availableEggType;
+                placeEggBtn.textContent = `Colocar ovo (${nice})`;
+                placeEggBtn.disabled = false;
+            }
+
+            placeEggTargetPlant = nearest;
+
+            // POSICIONAMENTO: prioriza pousar ao lado do botão de habilidade de pets (btnTatuAbility / btnConvertEggs)
+            const petAbilityBtn = (typeof btnTatuAbility !== 'undefined' && btnTatuAbility) ? btnTatuAbility : (typeof btnConvertEggs !== 'undefined' ? btnConvertEggs : null);
+
+            if (petAbilityBtn && petAbilityBtn.style.display !== 'none') {
+                // posiciona ao lado do botão (à esquerda, se couber)
+                const ref = petAbilityBtn.getBoundingClientRect();
+                const margin = 6;
+                // tenta colocar à esquerda; se não couber, coloca à direita
+                const tryLeft = ref.left - (placeEggBtn.offsetWidth || 90) - margin;
+                if (tryLeft > 6) {
+                    placeEggBtn.style.left = (tryLeft) + 'px';
+                } else {
+                    placeEggBtn.style.left = (ref.right + margin) + 'px';
+                }
+                placeEggBtn.style.top = (ref.top) + 'px';
+                placeEggBtn.style.display = 'block';
+                return;
+            }
+
+            // fallback: posiciona acima da usina na tela (como antes)
+            const sx = nearest.x - player.x + (typeof W === 'number' ? W / 2 : window.innerWidth / 2);
+            const sy = nearest.y - player.y + (typeof H === 'number' ? H / 2 : window.innerHeight / 2);
+            const canvasRect = (typeof canvas !== 'undefined') ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
+            placeEggBtn.style.left = (canvasRect.left + sx + 40) + 'px';
+            placeEggBtn.style.top = (canvasRect.top + sy - 40) + 'px';
+            placeEggBtn.style.display = 'block';
+        }
+
+        /* ------------------ LÓGICA DE COLOCAR OVO / PROGRESSO ------------------ */
+
+        function hasActiveArara() {
+            return isPetActive && typeof isPetActive === 'function' && isPetActive('Arara-Azul');
+        }
+
+        function tryPlaceEggOnPlant(plant) {
+            if (!plant) return;
+
+            // distância de segurança
+            const dx = plant.x - player.x;
+            const dy = plant.y - player.y;
+            if (Math.hypot(dx, dy) > PLACE_EGG_DISTANCE) return;
+
+            // 1) tenta ovo no slot selecionado do inventário
+            let chosen = null; // { source: 'inventory'|'storage', type: 'eggCommon'|'common' }
+            const selInv = player.inventory && player.inventory[player.selectedSlot];
+            if (selInv && selInv.type && selInv.count > 0 && /^egg/i.test(selInv.type)) {
+                chosen = { source: 'inventory', type: selInv.type };
+            }
+
+            // 2) se não tiver, tenta achar o melhor no inventário
+            if (!chosen) {
+                const invOrder = ['eggLegendary', 'eggMystic', 'eggEpic', 'eggRare', 'eggCommon'];
+                for (const it of invOrder) {
+                    if (typeof countItem === 'function' && countItem(it) > 0) {
+                        chosen = { source: 'inventory', type: it };
+                        break;
+                    }
+                }
+            }
+
+            // 3) se ainda não, tenta storage legado (player.eggs) com keys simples
+            if (!chosen) {
+                const storOrder = ['legendary', 'mystic', 'epic', 'rare', 'common'];
+                for (const k of storOrder) {
+                    if (getEggCount && getEggCount(k) > 0) {
+                        chosen = { source: 'storage', type: k };
+                        break;
+                    }
+                }
+            }
+
+            if (!chosen) {
+                // sem ovos em lugar nenhum
+                return;
+            }
+
+            // calcula o quanto será adicionado usando PLANT_EGG_PROGRESS (fonte única)
+            let rarityKey = (chosen.source === 'inventory') ? eggItemToRarityKey(chosen.type) : chosen.type;
+            if (!rarityKey) return;
+
+            // usa PLANT_EGG_PROGRESS como fonte única; se faltar, fallback para EGG_RARITY_VALUES se desejar
+            const addPercent = Number((typeof PLANT_EGG_PROGRESS !== 'undefined' && PLANT_EGG_PROGRESS[rarityKey] != null)
+                ? PLANT_EGG_PROGRESS[rarityKey]
+                : (typeof EGG_RARITY_VALUES !== 'undefined' ? EGG_RARITY_VALUES[rarityKey] || 0 : 0));
+
+            if (addPercent <= 0) return;
+
+            // consome 1 ovo do lugar certo
+            if (chosen.source === 'inventory') {
+                if (typeof removeItem === 'function') removeItem(chosen.type, 1);
+                else {
+                    // fallback: decrementa contagem manualmente
+                    for (let i = player.inventory.length - 1; i >= 0; i--) {
+                        const it = player.inventory[i];
+                        if (it && it.type === chosen.type) {
+                            if (it.count > 1) { it.count -= 1; } else { player.inventory[i] = null; }
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // storage legado
+                if (typeof decrementEgg === 'function') decrementEgg(chosen.type, 1);
+                else {
+                    const store = getEggStorage();
+                    store[chosen.type] = Math.max(0, (Number(store[chosen.type] || 0) - 1));
+                }
+            }
+
+            // aplica progresso e clamp 0..100
+            plant.progressEggPercent = Math.max(0, Math.min(100, Number(plant.progressEggPercent || 0) + addPercent));
+
+            // se completou -> aciona lógica (cria ally / altera respawn etc)
+            if (plant.progressEggPercent >= 100) {
+                plant.progressEggPercent = 100;
+                if (typeof onPlantCompleted === 'function') onPlantCompleted(plant);
+            }
+
+            // atualiza HUD/inventário/plant panels caso você tenha essas funções
+            if (typeof updateHUD === 'function') updateHUD();
+            if (typeof updateEggsUI === 'function') updateEggsUI();
+            if (typeof updatePlantPanel === 'function') updatePlantPanel(plant);
+        }
+
+        /* ------------------ AÇÃO QUANDO USINA CHEGAR A 100% ------------------ */
+
+        // Ativar habilidade do boto
+        function tryActivateBoto() {
+            const state = abilities['Boto-cor-de-rosa'];
+            if (!state) return alert('Boto sem habilidade registrada.');
+
+            // checa se o jogador tem o pet ativo como principal
+            if (player.activePet !== 'Boto-cor-de-rosa') {
+                return alert('Coloque o Boto como pet principal para ativar sua habilidade.');
+            }
+
+            // cooldown check
+            if (state.onCooldown && Date.now() < state.cooldownEnds) {
+                const rem = Math.ceil((state.cooldownEnds - Date.now()) / 1000);
+                return alert(`Boto em cooldown — espere ${rem}s.`);
+            }
+
+            // ativa
+            state.isActive = true;
+            state.activeEnds = Date.now() + BOTO_DURATION_MS;
+            state.onCooldown = true;
+            state.cooldownEnds = Date.now() + BOTO_COOLDOWN_MS;
+
+            // usar handleAbilityVisuals para controlar o texto e cooldown display (reaproveita)
+            handleAbilityVisuals('Boto-cor-de-rosa', btnBotoAbility, { activeText: 'Boto Ativo', cooldownText: 'Recarregando', readyText: 'Ativar Boto' });
+
+            // feedback
+            if (typeof showMsg === 'function') showMsg('Boto ativado: desconto em baús!');
+            return true;
+        }
+
+        // associe clique do botão
+        btnBotoAbility.addEventListener('click', tryActivateBoto);
+
+        // chamada para esconder/mostrar o botão no applyPetBuffs (integração abaixo):
+        const originalApplyPetBuffs_forBoto = applyPetBuffs;
+        applyPetBuffs = function () {
+            // chama versão original que já atualiza coisas importantes
+            originalApplyPetBuffs_forBoto();
+
+            // Se Boto for pet principal, mostra o botão; se não, esconde
+            if (player.activePet === 'Boto-cor-de-rosa') {
+                btnBotoAbility.style.display = 'block';
+                // set visual de cooldown se estiver em cooldown
+                const rem = (abilities['Boto-cor-de-rosa'] && abilities['Boto-cor-de-rosa'].cooldownEnds) ? Math.max(0, Math.ceil((abilities['Boto-cor-de-rosa'].cooldownEnds - Date.now()) / 1000)) : 0;
+                if (rem > 0) {
+                    btnBotoAbility.disabled = true;
+                    handleAbilityVisuals('Boto-cor-de-rosa', btnBotoAbility, { activeText: 'Boto Ativo', cooldownText: 'Recarregando', readyText: 'Ativar Boto' });
+                } else {
+                    btnBotoAbility.disabled = false;
+                    btnBotoAbility.textContent = 'Ativar Boto';
+                }
+            } else {
+                btnBotoAbility.style.display = 'none';
+            }
+        };
+
+        // função que determina o preço final de um baú considerando o Boto (use no handler da loja)
+        function getChestPriceWithBoto(playerObj, basePrice /*number*/, chestType /*'common'|'rare'|'legendary'*/) {
+            basePrice = Number(basePrice || 0);
+            if (basePrice <= 0) return 0;
+
+            const state = abilities['Boto-cor-de-rosa'];
+            // se boto não está ativo, sem desconto
+            if (!state || !state.isActive || Date.now() >= state.activeEnds) return basePrice;
+
+            // desconto normal 50%
+            let discountFraction = 0.50;
+            // se Arara ativa, desconto sobe para 99%
+            if (hasActiveArara()) discountFraction = 0.99;
+
+            const raw = basePrice * (1 - discountFraction);
+            const finalPrice = Math.max(1, Math.round(raw)); // garante preço mínimo 1
+            return finalPrice;
+        }
+
+        // limpeza automática da flag isActive quando o tempo acabar (poderíamos confiar no handleAbilityVisuals,
+        // mas garantimos coerência: checar periodicamente e desligar)
+        function updateBotoTimers(dtSec) {
+            const state = abilities['Boto-cor-de-rosa'];
+            if (!state) return;
+            if (state.isActive && Date.now() >= state.activeEnds) {
+                state.isActive = false;
+                // state.cooldownEnds já setado na ativação
+                if (typeof showMsg === 'function') showMsg('Boto terminou.');
+            }
+            if (state.onCooldown && Date.now() >= state.cooldownEnds) {
+                state.onCooldown = false;
+                state.cooldownEnds = 0;
+                // atualizar visual caso o botão esteja visível
+                if (btnBotoAbility && btnBotoAbility.style.display !== 'none') {
+                    btnBotoAbility.disabled = false;
+                    btnBotoAbility.textContent = 'Ativar Boto';
+                }
+            }
+        }
+
+        function onPlantCompleted(plant) {
+            console.log('onPlantCompleted chamado para', plant && plant.id);
+
+            // checa se tem combustível
+            const hasFuel = (plant.slots && plant.slots.fuel && Number(plant.slots.fuel.count) > 0) ||
+                (plant.timers && plant.timers.fuelRemainingFrames > 0);
+
+            if (!hasFuel) {
+                // mantém em 100% mas sinaliza que precisa de madeira
+                plant.progressEggPercent = 100;
+                plant.waitingForFuel = true;
+                // aumenta respawn timeout e set superCooldown pra evitar chamadas repetidas
+                ENEMY_RESPAWN_MS = 2 * 60 * 1000;
+                plant.superCooldown = Date.now() + 5 * 1000;
+                if (typeof updatePlantPanel === 'function') updatePlantPanel(plant);
+                return;
+            }
+
+            // tem combustível -> consome 1 wood e spawn normal
+            consumeOneWoodFromPlant(plant);
+
+            if (typeof spawnSuperDefender === 'function') {
+                spawnSuperDefender(plant.x, plant.y, plant);
+            } else {
+                createAllyForPlant(plant);
+            }
+
+            ENEMY_RESPAWN_MS = 2 * 60 * 1000;
+            plant.progressEggPercent = 0;
+            plant.superCooldown = Date.now() + 5 * 1000;
+            plant.waitingForFuel = false;
+            if (typeof updatePlantPanel === 'function') updatePlantPanel(plant);
+        }
+
+
+        /* ------------------ CRIAÇÃO SIMPLES DE ALIADO ------------------ */
+
+        function createAllyForPlant(plant) {
+            // garante que exista array global allies
+            window.allies = window.allies || [];
+
+            const ally = {
+                id: 'ally_' + Date.now(),
+                x: plant.x + (Math.random() - 0.5) * 40,
+                y: plant.y + (Math.random() - 0.5) * 40,
+                hp: 100,
+                damage: 12,
+                range: 200,
+                speed: 2,
+                target: null,
+                ownerPlantId: plant.id || null,
+                // desenhar/atualizar: implemente as funções de draw/update no seu loop
+            };
+
+            window.allies.push(ally);
+
+            // se não tiver função de update de aliados, criamos uma básica que você pode integrar ao seu loop 'update' do jogo
+            if (typeof updateAllies === 'undefined') {
+                window.updateAllies = function (delta) {
+                    // delta é tempo em ms ou frames; adapte se seu jogo usa outra convenção
+                    for (const a of window.allies) {
+                        if (a.hp <= 0) continue;
+
+                        // encontra inimigo mais próximo dentro do alcance
+                        let nearestEnemy = null;
+                        let nd = Infinity;
+                        for (const e of enemies || []) {
+                            if (!e || e.hp <= 0) continue;
+                            const d = Math.hypot(e.x - a.x, e.y - a.y);
+                            if (d < nd) { nd = d; nearestEnemy = e; }
+                        }
+
+                        if (nearestEnemy && nd <= a.range) {
+                            // ataca (pode ajustar para dano por segundo)
+                            if (!a._attackCooldown) a._attackCooldown = 0;
+                            a._attackCooldown -= (delta || 16);
+                            if (a._attackCooldown <= 0) {
+                                nearestEnemy.hp = (nearestEnemy.hp || 0) - a.damage;
+                                a._attackCooldown = 500; // 0.5s entre ataques (ajuste)
+                                // se inimigo morrer, chame sua lógica de morte (se existir)
+                                if (nearestEnemy.hp <= 0) {
+                                    if (typeof onEnemyKilled === 'function') onEnemyKilled(nearestEnemy, a);
+                                    // schedule respawn usando ENEMY_RESPAWN_MS (ver abaixo)
+                                    scheduleEnemyRespawn(nearestEnemy.x, nearestEnemy.y, Math.max(1, Math.floor((nearestEnemy.maxHp || 100) * 0.5)));
+                                }
+                            }
+                        } else if (nearestEnemy) {
+                            // se inimigo existe mas fora do alcance, move em direção a ele
+                            const ang = Math.atan2(nearestEnemy.y - a.y, nearestEnemy.x - a.x);
+                            a.x += Math.cos(ang) * (a.speed * ((delta || 16) / 16));
+                            a.y += Math.sin(ang) * (a.speed * ((delta || 16) / 16));
+                        } else {
+                            // sem inimigos: patrulha em torno da usina
+                            const tx = (plant.x || a.x) + Math.cos((Date.now() / 1000) + a.x) * 30;
+                            const ty = (plant.y || a.y) + Math.sin((Date.now() / 1000) + a.y) * 30;
+                            const ang = Math.atan2(ty - a.y, tx - a.x);
+                            a.x += Math.cos(ang) * (a.speed * ((delta || 16) / 16));
+                            a.y += Math.sin(ang) * (a.speed * ((delta || 16) / 16));
+                        }
+                    }
+                };
+
+                // e uma draw básica (chame no seu draw loop)
+                window.drawAllies = function (ctx) {
+                    for (const a of window.allies) {
+                        if (a.hp <= 0) continue;
+                        ctx.fillStyle = '#0f0';
+                        ctx.beginPath();
+                        const sx = a.x - player.x + (typeof W === 'number' ? W / 2 : window.innerWidth / 2);
+                        const sy = a.y - player.y + (typeof H === 'number' ? H / 2 : window.innerHeight / 2);
+                        ctx.arc(sx, sy, 10, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // barra de vida
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(sx - 12, sy - 18, 24, 4);
+                        ctx.fillStyle = '#0f0';
+                        const hpPercent = Math.max(0, Math.min(1, (a.hp / 100)));
+                        ctx.fillRect(sx - 12, sy - 18, 24 * hpPercent, 4);
+                    }
+                };
+            }
+        }
+
+        /* ------------------ SCHEDULER DE RESPAWN (usa ENEMY_RESPAWN_MS) ------------------ */
+
+        function scheduleEnemyRespawn(x, y, hp) {
+            setTimeout(() => {
+                if (typeof spawnEnemy === 'function') {
+                    spawnEnemy(x, y, hp);
+                } else {
+                    // fallback: se spawnEnemy não existir, cria um inimigo simples
+                    window.enemies = window.enemies || [];
+                    window.enemies.push({ x, y, hp: hp || 50, maxHp: hp || 50 });
+                }
+            }, ENEMY_RESPAWN_MS);
+        }
+
+
+
+        /* ------------------ INTEGRAÇÃO COM SEU LOOP PRINCIPAL ------------------ */
+
+        /*
+         - Chame initPlaceEggButton() na inicialização do jogo.
+         - No seu loop de atualização/logic (ex: update / tick) chame:
+              updatePlaceEggButtonPositionAndVisibility();
+              if (typeof updateAllies === 'function') updateAllies(deltaMs);
+         - No seu loop de desenho (canvas draw) chame:
+              drawAllies(ctx); // se você quiser desenhar os aliados
+         - Substitua chamadas diretas de setTimeout(spawnEnemy, 1000) no seu código
+           por scheduleEnemyRespawn(x,y,hp) para usar ENEMY_RESPAWN_MS.
+         - Se quiser, ajuste EGG_RARITY_VALUES para balancear.
+        */
+
+        function updatePlantFuel(dtSec) {
+            const framesPerWood = FUEL_WOOD_DURATION_SEC * FPS;
+            for (const p of plants) {
+                if (!p.timers) p.timers = { fuelRemainingFrames: 0 };
+                if (!p.slots) p.slots = { fuel: { type: null, count: 0 } };
+
+                if (p.timers.fuelRemainingFrames > 0) {
+                    // decrementa frames
+                    p.timers.fuelRemainingFrames = Math.max(0, p.timers.fuelRemainingFrames - (dtSec * FPS));
+
+                    // recalcula quantas madeiras "restam" pela duração
+                    const newCount = Math.ceil(p.timers.fuelRemainingFrames / framesPerWood);
+                    p.slots.fuel.count = newCount;
+
+                    // se zerou o tempo, limpa o slot
+                    if (p.timers.fuelRemainingFrames <= 0) {
+                        p.slots.fuel.count = 0;
+                        p.slots.fuel.type = null;
+                    }
+                }
+            }
+        }
+        // CORRIGIDO E COMPLETADO: Onde o código anterior foi cortado
+        function gameLoop() {
+            // atualiza movimento do jogador e dos pets
+            updatePlayerMovement();
+            updatePetMovements();
+
+            // checar interação com baús (do fim para o início para remover com splice)
+            for (let i = chests.length - 1; i >= 0; i--) {
+                const chest = chests[i];
+                const distance = Math.hypot(player.x - chest.x, player.y - chest.y);
+
+                if (distance < 20 + player.size) {
+                    // --- abre o baú que está no mapa ---
+                    const lootReceived = openChestImmediate(chest.type, { isFree: false });
+
+                    // mostrar resultado (popup custom ou alert)
+                    if (typeof showLootPopup === 'function') {
+                        showLootPopup(lootReceived);
+                    } else {
+                        alert(`Você encontrou: ${lootReceived.join(', ')}`);
+                    }
+
+                    // remover baú do mapa e agendar respawn
+                    chests.splice(i, 1);
+                    setTimeout(spawnChest, 5 * 60 * 1000);
+
+                    // --- efeito da Capivara: 25% de chance de abrir UM outro baú aleatório de graça ---
+                    if (isPetActive('Capivara')) {
+                        if (Math.random() < 0.25) {
+                            // lista dos tipos de baús válidos no seu jogo — ajuste conforme os nomes reais que usa
+                            const chestTypes = ['common', 'rare', 'legendary'];
+                            // se no seu jogo os nomes forem diferentes, troque acima.
+
+                            // escolhe um tipo aleatório
+                            const randomType = chestTypes[Math.floor(Math.random() * chestTypes.length)];
+
+                            // abre um baú grátis (isFree: true para evitar recursão do efeito da Capivara)
+                            const freeLoot = openChestImmediate(randomType, { isFree: true });
+
+                            // informar jogador que ganhou um baú grátis extra
+                            if (typeof showLootPopup === 'function') {
+                                showLootPopup(freeLoot, { title: 'Baú Grátis (Capivara)' });
+                            } else {
+                                alert(`Bônus Capivara! Você abriu um baú grátis (${randomType}):\n${freeLoot.join('\n')}`);
+                            }
+                        }
+                    }
+
+                    // interrompe o varrimento dos baús neste frame para evitar múltiplas aberturas simultâneas
+                    break;
+                }
+
+            }
+
+            // --- Desenho da cena ---
+            ctx.clearRect(0, 0, W, H);
+            ctx.save();
+            ctx.translate(W / 2 - player.x, H / 2 - player.y);
+
+            // ilha / background
+            ctx.beginPath();
+            ctx.fillStyle = '#a0652c';
+            ctx.arc(0, 0, islandRadius, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // desenhar baús
+            chests.forEach(chest => {
+                const imgKey = 'chest' + chest.type.charAt(0).toUpperCase() + chest.type.slice(1);
+                const img = imgs[imgKey];
+                const x = chest.x - chestSize / 2;
+                const y = chest.y - chestSize / 2;
+
+                if (canDrawImage(img)) {
+                    // drawImage pode lançar InvalidStateError em alguns casos; proteger com try/catch
+                    try {
+                        ctx.drawImage(img, x, y, chestSize, chestSize);
+                    } catch (e) {
+                        // fallback visual
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(x, y, chestSize, chestSize);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '12px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Baú', chest.x, chest.y + 4);
+                    }
+                } else {
+                    // fallback visual quando imagem não está disponível
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(x, y, chestSize, chestSize);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Baú', chest.x, chest.y + 4);
+                }
+            });
+
+            // desenhar pets ativos
+            activePets.forEach(pet => {
+                const imgKey = 'pet' + pet.type;
+                const img = imgs[imgKey];
+                const x = pet.x - petSize / 2;
+                const y = pet.y - petSize / 2;
+
+                if (canDrawImage(img)) {
+                    try {
+                        ctx.drawImage(img, x, y, petSize, petSize);
+                    } catch (e) {
+                        // fallback simples (retângulo + nome)
+                        ctx.fillStyle = '#666';
+                        ctx.fillRect(x, y, petSize, petSize);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '10px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(pet.type.split(' ')[0], pet.x, pet.y + 4);
+                    }
+                } else {
+                    ctx.fillStyle = '#666';
+                    ctx.fillRect(x, y, petSize, petSize);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(pet.type.split(' ')[0], pet.x, pet.y + 4);
+                }
+            });
+
+            // desenhar jogador
+            ctx.beginPath();
+            ctx.fillStyle = 'blue';
+            ctx.arc(player.x, player.y, player.size, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.restore();
+
+            // dentro do gameLoop (ou requestAnimationFrame)
+            const dtSec = 1 / 60; // se você não tem delta variável, use 1/60
+            updateEnemies(dtSec);
+            petsDealDamageToEnemies(dtSec);
+            updateSuperDefenders(dtSec);
+            updateResurrectedAllies(dtSec);
+            handlePlayerRegen(); // regen baseado em tempo
+            updatePlantFuel(dtSec);
+            drawPlantUI(ctx); // desenha barras sobre as usinas
+            drawEnemiesAndSuper(ctx); // desenha inimigos e superdefensores (com UI)
+            drawResurrectedAllies(ctx);
+            updatePlaceEggButtonPositionAndVisibility();
+
+            // próxima iteração
+            requestAnimationFrame(gameLoop);
+        }
+
+        function drawEnemiesAndSuper(ctx) {
+            // inimigos (mantive desenho anterior)
+            for (const e of enemies) {
+                // SUBSTITUA POR ESTE BLOCO CORRIGIDO:
+                // CORREÇÃO APLICADA AQUI:
+                // Escolhe a imagem correta baseada no tipo do inimigo.
+                let img;
+                if (e.type === 'slime') {
+                    img = imgs['slimeSprite']; // Usa a imagem do slime
+                } else {
+                    img = imgs['enemyOrange']; // Usa a imagem do inimigo normal
+                }
+                const w = 48, h = 48;
+                if (img && !img._broken && img.complete) {
+                    ctx.drawImage(img, e.x - w / 2 - player.x + W / 2, e.y - h / 2 - player.y + H / 2, w, h);
+                } else {
+                    ctx.fillStyle = 'orange';
+                    ctx.beginPath(); ctx.arc(e.x - player.x + W / 2, e.y - player.y + H / 2, 20, 0, Math.PI * 2); ctx.fill();
+                }
+                // barra de vida
+                const sx = e.x - player.x + W / 2 - 24;
+                const sy = e.y - player.y + H / 2 - 32;
+                ctx.fillStyle = '#333'; ctx.fillRect(sx, sy, 48, 6);
+                ctx.fillStyle = 'red'; ctx.fillRect(sx, sy, 48 * Math.max(0, (e.hp / (e.baseHp || ENEMY_BASE_HP))), 6);
+            }
+
+            // superdefenders (desenha também o raio de cura)
+            for (const sd of superDefenders) {
+                // desenha raio de cura (roxo, alpha 0.1) - relativo à tela
+                const HEAL_RADIUS = 50;
+                const cx = sd.x - player.x + W / 2;
+                const cy = sd.y - player.y + H / 2;
+                ctx.save();
+                ctx.globalAlpha = 0.1;
+                ctx.fillStyle = '#800080';
+                ctx.beginPath();
+                ctx.arc(cx, cy, HEAL_RADIUS, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // desenha a sprite do SD
+                const img = imgs['superDefender'];
+                const w = 64, h = 64;
+                if (img && !img._broken && img.complete) {
+                    ctx.drawImage(img, sd.x - w / 2 - player.x + W / 2, sd.y - h / 2 - player.y + H / 2, w, h);
+                } else {
+                    ctx.fillStyle = 'cyan';
+                    ctx.fillRect(sd.x - player.x + W / 2 - 20, sd.y - player.y + H / 2 - 20, 40, 40);
+                }
+
+                // barra de vida
+                const sx = sd.x - player.x + W / 2 - 32;
+                const sy = sd.y - player.y + H / 2 - 40;
+                ctx.fillStyle = '#333'; ctx.fillRect(sx, sy, 64, 6);
+                ctx.fillStyle = 'lime'; ctx.fillRect(sx, sy, 64 * Math.max(0, sd.hp / SUPERDEF_HP), 6);
+            }
+        }
+
+        function drawEnemies() {
+            enemies.forEach(e => {
+                // desenha inimigo (usa imagem se carregada, senão fallback vermelho)
+                if (canDrawImage(imgs.enemyOrange)) {
+                    ctx.drawImage(imgs.enemyOrange, e.x - 32, e.y - 32, 64, 64);
+                } else {
+                    ctx.fillStyle = "red";
+                    ctx.beginPath();
+                    ctx.arc(e.x, e.y, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // barra de vida em cima
+                const barW = 60;
+                const barH = 6;
+                const hpPerc = e.hp / e.baseHp;
+                ctx.fillStyle = "red";
+                ctx.fillRect(e.x - barW / 2, e.y - 45, barW, barH);
+                ctx.fillStyle = "lime";
+                ctx.fillRect(e.x - barW / 2, e.y - 45, barW * hpPerc, barH);
+                ctx.strokeStyle = "black";
+                ctx.strokeRect(e.x - barW / 2, e.y - 45, barW, barH);
+            });
+        }
+
+
+        function drawPlantUI(ctx) {
+            plants.forEach(p => {
+                // coordenadas na tela
+                const sx = p.x - player.x + W / 2;
+                const sy = p.y - player.y + H / 2;
+
+                // desenha a imagem da usina
+                const img = imgs['plant'];
+                const size = 64;
+                if (canDrawImage(img)) {
+                    ctx.drawImage(img, sx - size / 2, sy - size / 2, size, size);
+                } else {
+                    ctx.fillStyle = '#964B00';
+                    ctx.fillRect(sx - size / 2, sy - size / 2, size, size);
+                }
+
+                // --- progresso (Eggs) ---
+                const progressPercent = Math.max(0, Math.min(100, Number(p.progressEggPercent) || 0));
+                ctx.fillStyle = '#333';
+                ctx.fillRect(sx - 60, sy - 60, 120, 10);
+                ctx.fillStyle = p.progressBarColor || '#00f';
+                ctx.fillRect(sx - 60, sy - 60, 1.2 * progressPercent, 10);
+
+                // --- combustível (robusto para objeto/number/string) ---
+                const fuelSlot = p.slots && p.slots.fuel;
+                let fuelCount = 0;
+                let fuelType = null;
+
+                if (fuelSlot != null) {
+                    if (typeof fuelSlot === 'object') {
+                        // formato esperado: { type: 'wood', count: 3 }
+                        fuelCount = Number(fuelSlot.count) || 0;
+                        fuelType = fuelSlot.type || null;
+                    } else if (typeof fuelSlot === 'number' || !isNaN(Number(fuelSlot))) {
+                        fuelCount = Number(fuelSlot);
+                    } else {
+                        // fallback: tenta parsear string
+                        fuelCount = parseInt(String(fuelSlot), 10) || 0;
+                    }
+                }
+
+                // evita divisão por zero caso FUEL_PACK_WOOD não esteja definido corretamente
+                const maxFuelUnits = (typeof FUEL_PACK_WOOD === 'number' && FUEL_PACK_WOOD > 0) ? (FUEL_PACK_WOOD * 2) : 1;
+                const fuelPercent = Math.max(0, Math.min(100, (fuelCount / maxFuelUnits) * 100));
+
+                ctx.fillStyle = '#333';
+                ctx.fillRect(sx - 60, sy - 46, 120, 8);
+                ctx.fillStyle = p.fuelBarColor || '#c00';
+                ctx.fillRect(sx - 60, sy - 46, 1.2 * fuelPercent, 8);
+
+                // textos
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px sans-serif';
+                ctx.fillText(`Eggs: ${Math.round(progressPercent)}%`, sx - 60, sy - 66);
+                ctx.fillText(`Fuel: ${fuelCount}${fuelType ? ' (' + fuelType + ')' : ''}`, sx + 40, sy - 32);
+            });
+        }
+
+
+        function drawResurrectedAllies(ctx) {
+            for (const a of resurrectedAllies) {
+                if (!a) continue;
+                // converte coordenadas mundo -> tela (mesma lógica usada em drawEnemies)
+                const sx = a.x - player.x + (typeof W === 'number' ? W / 2 : window.innerWidth / 2);
+                const sy = a.y - player.y + (typeof H === 'number' ? H / 2 : window.innerHeight / 2);
+
+                ctx.save();
+
+                // corpo do aliado
+                ctx.beginPath();
+                ctx.fillStyle = '#7adf5a';
+                ctx.arc(sx, sy, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // barra de HP
+                const barW = 30, barH = 4;
+                const hpFrac = Math.max(0, Math.min(1, (a.hp || 0) / (a.maxHp || 1)));
+                ctx.fillStyle = '#222';
+                ctx.fillRect(sx - barW / 2, sy - 20, barW, barH);
+                ctx.fillStyle = '#2ecc71';
+                ctx.fillRect(sx - barW / 2, sy - 20, barW * hpFrac, barH);
+
+                // barra de TTL (se houver)
+                if (typeof a.ttlRemaining === 'number' && typeof a.ttlSec === 'number') {
+                    const ttlFrac = Math.max(0, Math.min(1, a.ttlRemaining / a.ttlSec));
+                    const ttlW = 30, ttlH = 3;
+                    ctx.fillStyle = '#111';
+                    ctx.fillRect(sx - ttlW / 2, sy - 26, ttlW, ttlH);
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.fillRect(sx - ttlW / 2, sy - 26, ttlW * ttlFrac, ttlH);
+                }
+
+                ctx.restore();
+            }
+        }
+        // inicializa o joystick quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', function () {
+            (function () {
+                try {
+                    const joystick = document.getElementById('mobileJoystick');
+                    if (!joystick) return;
+                    const stick = joystick.querySelector('.stick');
+                    const maxRadius = 50; // px - quanto o stick pode se mover visualmente
+                    let active = false;
+                    let pointerId = null;
+                    let center = { x: 0, y: 0 };
+
+                    function resetStick() {
+                        // Mantém a centralização inicial
+                        stick.style.transform = 'translate(-50%,-50%)';
+                    }
+
+                    function updateKeysFromNormalized(nx, ny) {
+                        const T = 0.35;
+                        if (typeof keys === 'undefined') window.keys = {};
+                        keys['w'] = ny < -T;
+                        keys['s'] = ny > T;
+                        keys['a'] = nx < -T;
+                        keys['d'] = nx > T;
+                        keys['ArrowUp'] = keys['w'];
+                        keys['ArrowDown'] = keys['s'];
+                        keys['ArrowLeft'] = keys['a'];
+                        keys['ArrowRight'] = keys['d'];
+                    }
+
+                    function handleMove(px, py) {
+                        const dx = px - center.x;
+                        const dy = py - center.y;
+                        const dist = Math.hypot(dx, dy);
+                        const clamped = Math.min(dist, maxRadius);
+                        const angle = Math.atan2(dy, dx);
+                        const sx = Math.cos(angle) * clamped;
+                        const sy = Math.sin(angle) * clamped;
+                        // IMPORTANTE: manter a centralização (-50%,-50%) e aplicar o deslocamento em pixels depois
+                        stick.style.transform = 'translate(-50%,-50%) translate(' + sx + 'px, ' + sy + 'px)';
+                        const nx = sx / maxRadius;
+                        const ny = sy / maxRadius;
+                        updateKeysFromNormalized(nx, ny);
+                    }
+
+                    joystick.addEventListener('pointerdown', function (e) {
+                        // se quiser permitir mouse no joystick, remova a checagem ou permita botão primário:
+                        // if (e.pointerType === 'mouse') return;
+                        joystick.setPointerCapture && joystick.setPointerCapture(e.pointerId);
+                        pointerId = e.pointerId;
+                        active = true;
+                        const rect = joystick.getBoundingClientRect();
+                        center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                        handleMove(e.clientX, e.clientY);
+                    }, { passive: false });
+
+                    joystick.addEventListener('pointermove', function (e) {
+                        if (!active || e.pointerId !== pointerId) return;
+                        handleMove(e.clientX, e.clientY);
+                    }, { passive: false });
+
+                    function releasePointer() {
+                        active = false;
+                        pointerId = null;
+                        resetStick();
+                        if (typeof keys === 'undefined') window.keys = {};
+                        keys['w'] = keys['a'] = keys['s'] = keys['d'] = false;
+                        keys['ArrowUp'] = keys['ArrowLeft'] = keys['ArrowDown'] = keys['ArrowRight'] = false;
+                    }
+
+                    joystick.addEventListener('pointerup', releasePointer);
+                    joystick.addEventListener('pointercancel', releasePointer);
+                    joystick.addEventListener('pointerleave', releasePointer);
+
+                    function refreshJoystickVisibility() {
+                        const shouldShow = true; // se quiser mostrar sempre
+                        joystick.style.display = shouldShow ? 'block' : 'none';
+                    }
+                    window.addEventListener('resize', refreshJoystickVisibility);
+                    setTimeout(refreshJoystickVisibility, 50);
+
+                    // garante posição inicial correta
+                    resetStick();
+                } catch (err) {
+                    console.warn('Joystick init failed', err);
+                }
+            })();
+        });
+
+
+
+        // Inicialização do jogo
+        initializeAbilityStates();
+        for (let i = 0; i < maxChests; i++) { spawnChest(); }
+        updateHUD();
+        updateElixirDisplay();
+        updatePetsPanel();
+        applyPetBuffs();
+        gameLoop();
+        initPlaceEggButton();
+
+        (function () {
+            const STORAGE_KEY = 'permClasses_v1';
+            const BASE_MAX_HP = 200;
+            player.maxHp = BASE_MAX_HP;
+
+            // inicializa campos do player se não existirem
+            player.permClasses = player.permClasses || JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            player.currentClass = null;
+            player.maxHp = player.maxHp || 200;
+            player.hp = (typeof player.hp === 'number') ? player.hp : player.maxHp;
+            let construtorInterval = null;
+            let PLAYER_VISIBILITY_MULT = 1; // usado para aumentar visão dos inimigos (não afeta slime)
+            let __gameOver = false;
+
+            function savePermClasses() { localStorage.setItem(STORAGE_KEY, JSON.stringify(player.permClasses)); }
+
+            function updateHpDisplay() {
+                const hpEl = document.getElementById('hpDisplay');
+                if (hpEl) hpEl.textContent = `HP: ${Math.max(0, Math.floor(player.hp))} / ${player.maxHp}`;
+            }
+            updateHpDisplay();
+
+            // Wrap / override de applyDamageToPlayer (se já existir, preserva original comportamento)
+            const _origApplyDamage = (typeof applyDamageToPlayer === 'function') ? applyDamageToPlayer : null;
+            window.applyDamageToPlayer = function (damage, src) {
+                if (__gameOver) return;
+                if (_origApplyDamage) {
+                    try { _origApplyDamage(damage, src); }
+                    catch (e) { player.hp = Math.max(0, (player.hp || player.maxHp) - damage); player.lastDamageAt = Date.now(); }
+                } else {
+                    player.hp = Math.max(0, (player.hp || player.maxHp) - damage);
+                    player.lastDamageAt = Date.now();
+                }
+                updateHpDisplay();
+                if (player.hp <= 0 && !__gameOver) {
+                    __gameOver = true;
+                    onGameOver();
+                }
+            };
+
+            function onGameOver() {
+                // efeito simples: mostra overlay e pausa inputs (você pode trocar por tela personalizada)
+                const overlay = document.createElement('div');
+                Object.assign(overlay.style, {
+                    position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, color: '#fff', fontSize: '26px', flexDirection: 'column'
+                });
+                overlay.innerHTML = `<div style="text-align:center;"><strong>GAME OVER</strong><div style="margin-top:12px">Clique em Reiniciar para jogar novamente</div><br/><button id="__btnRestart" style="padding:10px 16px;font-size:16px;cursor:pointer">Reiniciar</button></div>`;
+                document.body.appendChild(overlay);
+                document.getElementById('__btnRestart').addEventListener('click', () => location.reload());
+                // desativa ações do jogador definindo flag; muitos handlers consultam player.hp; isso é suficiente
+            }
+
+            // ---------- lógica de drop de classes por ovo ----------
+            function maybeDropClass(eggType) {
+                const r = Math.random();
+                // common: 50% chance de dropar 1 das 3 (corredor, sobrevivente, monopolio)
+                if (eggType === 'eggCommon') {
+                    if (r < 0.50) {
+                        const list = ['corredor', 'sobrevivente', 'monopolio'];
+                        const notOwned = list.filter(c => !player.permClasses.includes(c));
+                        if (notOwned.length === 0) {
+                            // tem todas as 3 -> dar 250 de elixir
+                            player.elixir = (player.elixir || 0) + 250;
+                            if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+                            alert('Você já tinha todas as classes comuns — recebeu +250 Elixir!');
+                        } else {
+                            const chosen = notOwned[Math.floor(Math.random() * notOwned.length)];
+                            player.permClasses.push(chosen);
+                            savePermClasses();
+                            alert(`Classe permanente desbloqueada: ${niceClassName(chosen)}`);
+                        }
+                    }
+                    return;
+                }
+
+                // rare: 30% -> negociante
+                if (eggType === 'eggRare') {
+                    if (r < 0.30 && !player.permClasses.includes('negociante')) {
+                        player.permClasses.push('negociante'); savePermClasses();
+                        alert('Classe permanente desbloqueada: Negociante');
+                    }
+                    return;
+                }
+
+                // epic: 5% -> veterano
+                if (eggType === 'eggEpic') {
+                    if (r < 0.05 && !player.permClasses.includes('veterano')) {
+                        player.permClasses.push('veterano'); savePermClasses();
+                        alert('Classe permanente desbloqueada: Veterano');
+                    }
+                    return;
+                }
+
+                // mystic: 2% -> construtor
+                if (eggType === 'eggMystic') {
+                    if (r < 0.02 && !player.permClasses.includes('construtor')) {
+                        player.permClasses.push('construtor'); savePermClasses();
+                        alert('Classe permanente desbloqueada: Construtor');
+                    }
+                    return;
+                }
+
+                // legendary: 2% -> cacador (Caçador)
+                if (eggType === 'eggLegendary') {
+                    if (r < 0.02 && !player.permClasses.includes('cacador')) {
+                        player.permClasses.push('cacador');
+                        savePermClasses();
+                        alert('Classe permanente desbloqueada: Caçador');
+                    }
+                    return;
+                }
+
+            }
+
+            function niceClassName(id) {
+                const map = {
+                    'corredor': 'Corredor (+25% velocidade)',
+                    'sobrevivente': 'Sobrevivente (+100 HP)',
+                    'monopolio': 'Monopólio (começa com 1 Ovo Épico + 1 Místico)',
+                    'negociante': 'Negociante (1º upgrade pets desbloqueado, porém HP 160)',
+                    'veterano': 'Veterano (HP 500, -10% velocidade)',
+                    'construtor': 'Construtor (Usina grátis no início, +30 Elixir/s, inimigos te veem 30% mais longe)',
+                    'cacador': 'Caçador (+300 Elixir quando pets/defensor derrotam inimigo — inimigos te veem 2x mais longe)'
+
+                };
+                return map[id] || id;
+            }
+
+            // -- intercepta remoção de itens para detectar consumo de ovos e aplicar maybeDropClass --
+            const _origRemoveItem = (typeof removeItem === 'function') ? removeItem : null;
+            window.removeItem = function (type, count) {
+                try {
+                    if (_origRemoveItem) _origRemoveItem(type, count);
+                    else {
+                        // fallback: tenta manipular inventário genérico
+                        if (player && player.inventory && type) {
+                            // simples: reduz o item matching
+                            for (let i = 0; i < player.inventory.length && count > 0; i++) {
+                                const it = player.inventory[i];
+                                if (it && it.type === type) {
+                                    it.count = (it.count || 1) - 1;
+                                    if (it.count <= 0) player.inventory.splice(i, 1);
+                                    count--;
+                                    i--;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('removeItem override: erro ao chamar original', e);
+                }
+                // chama maybeDropClass quando consumido um ovo (assume nome eggX)
+                if (typeof type === 'string' && type.startsWith('egg')) {
+                    try { maybeDropClass(type); } catch (e) { console.warn('maybeDropClass erro', e); }
+                }
+            };
+
+            // ---------- modal para seleção de classe no início de cada partida ----------
+            function showClassSelectionModal() {
+                const owned = (player.permClasses || []).slice();
+
+                // criar estilos locais (apenas uma vez)
+                if (!document.getElementById('__classModalStyles')) {
+                    const style = document.createElement('style');
+                    style.id = '__classModalStyles';
+                    style.textContent = `
+            /* Modal box responsivo */
+            .__classModal_box {
+                width: 420px;
+                max-width: 90vw;
+                background: #111;
+                padding: 18px;
+                border-radius: 8px;
+                border: 2px solid #444;
+                text-align: left;
+                box-sizing: border-box;
+            }
+            /* area da lista das classes - ficará rolável em telas pequenas */
+            .__classModal_list {
+                margin-top: 6px;
+                display:block;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            /* Ajuste responsivo: em telas pequenas limita a altura da lista para caber na tela */
+            @media (max-width: 700px) {
+                .__classModal_box { width: 90vw; padding: 14px; }
+                .__classModal_list { max-height: 60vh; }
+            }
+            /* Estilização simples de scrollbar (WebKit) - opcional */
+            .__classModal_list::-webkit-scrollbar { width: 10px; }
+            .__classModal_list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 6px; }
+        `;
+                    document.head.appendChild(style);
+                }
+
+                // cria modal
+                const modal = document.createElement('div');
+                Object.assign(modal.style, {
+                    position: 'fixed', left: 0, top: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.8)', zIndex: 99998,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'sans-serif'
+                });
+
+                const box = document.createElement('div');
+                box.className = '__classModal_box';
+                box.innerHTML = `<h2 style="margin-top:0;color:#ffd700">Escolha sua Classe (início da partida)</h2>
+        <p style="color:#ccc;margin:6px 0 12px 0">Selecione 1 classe temporária para essa partida. Você pode desbloquear mais classes abrindo ovos.</p>`;
+
+                // lista rolável
+                const list = document.createElement('div');
+                list.className = '__classModal_list';
+
+                // calcular altura padrão da lista para telas maiores (evita lista muito longa)
+                const viewportH = Math.max(window.innerHeight || 600, 600);
+                if (window.innerWidth > 700) {
+                    // em telas grandes limitamos a lista para, por exemplo, 50vh
+                    list.style.maxHeight = Math.round(viewportH * 0.5) + 'px';
+                } else {
+                    // em telas pequenas já temos regra CSS para 60vh via media query, mas colocamos fallback
+                    list.style.maxHeight = Math.round(viewportH * 0.6) + 'px';
+                }
+
+                // popular itens (sempre inclui "Nenhuma")
+                const items = [{ id: 'nenhuma', label: 'Nenhuma (padrão, inimigos não dropam elixir)' }].concat(owned.map(id => ({ id, label: niceClassName(id) })));
+                items.forEach(it => {
+                    const r = document.createElement('div');
+                    r.style.marginBottom = '8px';
+                    r.innerHTML = `<label style="cursor:pointer;display:block"><input type="radio" name="classSel" value="${it.id}" ${it.id === 'nenhuma' ? 'checked' : ''}> <strong style="margin-left:8px">${it.label}</strong></label>`;
+                    list.appendChild(r);
+                });
+
+                box.appendChild(list);
+
+                const btns = document.createElement('div');
+                btns.style.marginTop = '12px';
+                btns.innerHTML = `<button id="__btnChooseClass" style="padding:10px 14px;margin-right:8px;cursor:pointer">Confirmar</button> <button id="__btnSkipClass" style="padding:10px 14px;cursor:pointer">Cancelar</button>`;
+                box.appendChild(btns);
+
+                modal.appendChild(box);
+                document.body.appendChild(modal);
+
+                // Eventos
+                document.getElementById('__btnSkipClass').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+                document.getElementById('__btnChooseClass').addEventListener('click', () => {
+                    const sel = modal.querySelector('input[name="classSel"]:checked').value;
+                    applySelectedClass(sel);
+                    document.body.removeChild(modal);
+                });
+
+                // Se o teclado virtual (mobile) abrir, ajusta maxHeight da lista dinamicamente
+                function adjustOnResize() {
+                    const newH = Math.max(window.innerHeight || 600, 300);
+                    list.style.maxHeight = (window.innerWidth > 700 ? Math.round(newH * 0.5) : Math.round(newH * 0.6)) + 'px';
+                }
+                window.addEventListener('resize', adjustOnResize);
+                // remove listener quando modal for fechado (limpeza)
+                const cleanup = () => { window.removeEventListener('resize', adjustOnResize); };
+                document.getElementById('__btnSkipClass').addEventListener('click', cleanup);
+                document.getElementById('__btnChooseClass').addEventListener('click', cleanup);
+            }
+
+            function applySelectedClass(id) {
+                // reset efeitos anteriores
+                PLAYER_VISIBILITY_MULT = 1;
+                if (construtorInterval) { clearInterval(construtorInterval); construtorInterval = null; }
+                // reset variaveis do player que classes alteram
+                player.speedMultiplier = 1;
+                player.dualUpgrade = player.dualUpgrade || false; // mantem se ja tiver comprado
+                // default hp
+                player.maxHp = 200;
+                player.hp = Math.min(player.hp || 200, player.maxHp);
+
+                switch (id) {
+                    case 'nenhuma':
+                        player.currentClass = 'nenhuma';
+                        // ao voltar para nenhuma, não forçamos hp full — apenas limitamos ao novo max
+                        player.hp = Math.min(player.hp || player.maxHp, player.maxHp);
+                        break;
+
+                    case 'corredor':
+                        player.currentClass = 'corredor';
+                        player.speedMultiplier = 1.25;
+                        // vida padrão
+                        player.maxHp = BASE_MAX_HP;
+                        player.hp = Math.min(player.hp || player.maxHp, player.maxHp);
+                        break;
+
+                    case 'sobrevivente':
+                        player.currentClass = 'sobrevivente';
+                        player.maxHp = 300;
+                        // aqui definimos a vida atual igual à nova vida máxima
+                        player.hp = player.maxHp;
+                        break;
+
+                    case 'monopolio':
+                        player.currentClass = 'monopolio';
+                        player.maxHp = BASE_MAX_HP;
+                        player.hp = Math.min(player.hp || player.maxHp, player.maxHp);
+                        if (typeof giveItem === 'function') {
+                            giveItem('eggEpic', 1);
+                            giveItem('eggMystic', 1);
+                        }
+                        break;
+
+                    case 'negociante':
+                        player.currentClass = 'negociante';
+                        player.dualUpgrade = true;
+                        // AQUI garantimos que a vida máxima seja 160 (e também ajustamos a vida atual para o máximo)
+                        player.maxHp = 160;
+                        player.hp = player.maxHp;
+                        break;
+
+                    case 'veterano':
+                        player.currentClass = 'veterano';
+                        player.maxHp = 500;
+                        player.hp = player.maxHp;
+                        player.speedMultiplier = 0.90;
+                        break;
+
+                    case 'construtor':
+                        player.currentClass = 'construtor';
+                        player.maxHp = BASE_MAX_HP;
+                        player.hp = Math.min(player.hp || player.maxHp, player.maxHp);
+                        // spawn usina se a função existir
+                        if (typeof spawnPlantAt === 'function') spawnPlantAt(player.x + 80, player.y);
+                        // intervalo de ganho de elixir
+                        window.__construtorInterval = setInterval(() => {
+                            player.elixir = (player.elixir || 0) + 30;
+                            if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+                        }, 1000);
+                        PLAYER_VISIBILITY_MULT = 1.3;
+                        window.PLAYER_VISIBILITY_MULT = PLAYER_VISIBILITY_MULT;
+                        break;
+
+                    case 'cacador':
+                        player.currentClass = 'cacador';
+                        player.maxHp = BASE_MAX_HP;
+                        player.hp = Math.min(player.hp || player.maxHp, player.maxHp);
+                        // CONTRA: inimigos vêem o jogador 2x mais longe (não afeta slimes)
+                        PLAYER_VISIBILITY_MULT = 2;
+                        // também manter a versão global se outras partes do código a referenciam
+                        window.PLAYER_VISIBILITY_MULT = 2;
+                        break;
+
+
+
+                    default:
+                        // se id for uma classe válida desbloqueada, reaplica-a recursivamente
+                        if (player.permClasses && player.permClasses.includes(id)) {
+                            return applySelectedClass(id);
+                        } else {
+                            player.currentClass = 'nenhuma';
+                            player.hp = Math.min(player.hp || player.maxHp, player.maxHp);
+                        }
+                        break;
+                }
+
+                // atualizar HP UI
+                updateHpDisplay();
+                // atualizar outras UIs se houver
+                if (typeof updatePetsPanel === 'function') updatePetsPanel();
+                if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+            }
+
+            // Mostra o modal somente se o jogador tiver ao menos 1 classe desbloqueada, ou sempre (você pediu sempre)
+            // vou mostrar sempre para permitir escolher 'Nenhuma'.
+            setTimeout(() => showClassSelectionModal(), 300);
+
+            // ---------- Patch do updateEnemies para respeitar PLAYER_VISIBILITY_MULT (não afeta slimes) ----------
+            // Substitui a função updateEnemies original por uma versão compatível (preservando comportamento principal).
+            // Se não quiser substituir, remova esta parte e ajuste manualmente sua função updateEnemies para usar PLAYER_VISIBILITY_MULT.
+            const _origUpdateEnemies = (typeof updateEnemies === 'function') ? updateEnemies : null;
+            window.updateEnemies = function (dtSec) {
+                // se já havia uma implementação original e ela está funcionando, tentaremos reutilizar sua lógica
+                // porém a versão original pode usar ENEMY_DETECT_RANGE direto — então substituímos por implementação compatível encontrada no arquivo.
+                // Aqui colocamos uma implementação segura baseada no padrão do seu script (seguir o mesmo comportamento).
+                if (!_origUpdateEnemies) {
+                    // fallback simples (não deveria cair aqui se já tiver updateEnemies)
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        const e = enemies[i];
+                        const distToPlayer = Math.hypot(e.x - player.x, e.y - player.y);
+                        const detectRange = (e.type === 'slime') ? (SLIME_DETECT_RANGE || 400) : (ENEMY_DETECT_RANGE || 250) * PLAYER_VISIBILITY_MULT;
+                        if (distToPlayer <= detectRange) {
+                            const ang = Math.atan2(player.y - e.y, player.x - e.x);
+                            e.x += Math.cos(ang) * (e.speed || 1);
+                            e.y += Math.sin(ang) * (e.speed || 1);
+                            // dano
+                            if (distToPlayer <= ((player.size || 20) + (e.size || 20))) {
+                                const dmg = (e.damagePerSec || ENEMY_DAMAGE_PER_SEC || 10) * dtSec;
+                                applyDamageToPlayer(dmg, e);
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // se existia uma função original, nós chamamos ela, mas antes ajustamos temporariamente o comportamento para detecção:
+                // Para evitar duplicar lógica, chamamos a original; muitos dos seus checks usam ENEMY_DETECT_RANGE diretamente,
+                // então como alternativa a alterar o código fonte, vamos ajustar cada inimigo para ter um campo detectMultiplier
+                // que a original pode ou não usar — se a original não usar, ainda assim a substituição acima (fallback) cuida.
+                // Como solução prática e segura: chamamos a original; se ela usa ENEMY_DETECT_RANGE direto, isto permanecerá
+                // (o ideal é integrar manualmente no seu updateEnemies original). Para garantir efeito do Construtor,
+                // se quiser que o multiplicador tenha efeito completo, recomenda-se aplicar a pequena modificação diretamente
+                // na função updateEnemies do seu arquivo: substituir ENEMY_DETECT_RANGE por (ENEMY_DETECT_RANGE * (e.type==='slime'?1:PLAYER_VISIBILITY_MULT))
+                try {
+                    _origUpdateEnemies(dtSec);
+                } catch (e) {
+                    // fallback para manter jogo funcionando
+                    console.warn('Erro ao chamar updateEnemies original, usando fallback.', e);
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        const e = enemies[i];
+                        const distToPlayer = Math.hypot(e.x - player.x, e.y - player.y);
+                        const detectRange = (e.type === 'slime') ? (SLIME_DETECT_RANGE || 400) : (ENEMY_DETECT_RANGE || 250) * PLAYER_VISIBILITY_MULT;
+                        if (distToPlayer <= detectRange) {
+                            const ang = Math.atan2(player.y - e.y, player.x - e.x);
+                            e.x += Math.cos(ang) * (e.speed || 1);
+                            e.y += Math.sin(ang) * (e.speed || 1);
+                            if (distToPlayer <= ((player.size || 20) + (e.size || 20))) {
+                                const dmg = (e.damagePerSec || ENEMY_DAMAGE_PER_SEC || 10) * dtSec;
+                                applyDamageToPlayer(dmg, e);
+                            }
+                        }
+                    }
+                }
+            };
+
+            window.SPECIAL_VIDEO_LINK = 'https://www.youtube.com/watch?v=Vx8rxik9KiQ';
+
+            // Função que cria e exibe o popup de "game cleared"
+            function showAllPetsPopup() {
+                try {
+                    if (window._allPetsPopupShown) return;
+                    window._allPetsPopupShown = true;
+
+                    const overlay = document.createElement('div');
+                    overlay.id = '__allPetsOverlay';
+                    Object.assign(overlay.style, {
+                        position: 'fixed', left: 0, top: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.6)', zIndex: 100000, display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif'
+                    });
+
+                    const box = document.createElement('div');
+                    Object.assign(box.style, {
+                        width: '520px', maxWidth: '92vw', background: '#0f1724', color: '#fff',
+                        padding: '18px', borderRadius: '10px', boxSizing: 'border-box', position: 'relative',
+                        border: '2px solid rgba(255,255,255,0.06)', textAlign: 'left'
+                    });
+
+                    // Close X
+                    const btnX = document.createElement('button');
+                    btnX.innerHTML = '&times;';
+                    Object.assign(btnX.style, {
+                        position: 'absolute', right: '10px', top: '8px', background: 'transparent',
+                        border: 'none', color: '#bbb', fontSize: '22px', cursor: 'pointer'
+                    });
+                    btnX.title = 'Fechar';
+                    btnX.addEventListener('click', () => {
+                        if (document.body.contains(overlay)) document.body.removeChild(overlay);
+                    });
+                    box.appendChild(btnX);
+
+                    const title = document.createElement('h2');
+                    title.textContent = 'Parabéns — você zerou o jogo!';
+                    Object.assign(title.style, { marginTop: '0', color: '#ffd54a' });
+                    box.appendChild(title);
+
+                    const p = document.createElement('p');
+                    p.innerHTML = 'Você desbloqueou <strong>todos os pets</strong>. Isso conta como terminar o jogo — mas você pode continuar jogando normalmente.<br/><br/>Clique no botão azul para assistir um vídeo especial, ou feche este aviso para continuar jogando.';
+                    Object.assign(p.style, { color: '#dfe7f2', lineHeight: '1.4' });
+                    box.appendChild(p);
+
+                    const actions = document.createElement('div');
+                    Object.assign(actions.style, { marginTop: '14px', display: 'flex', gap: '10px', alignItems: 'center' });
+
+                    const btnVideo = document.createElement('button');
+                    btnVideo.textContent = 'Ver vídeo especial';
+                    Object.assign(btnVideo.style, {
+                        padding: '10px 14px', cursor: 'pointer', borderRadius: '6px',
+                        border: 'none', background: '#1677ff', color: '#fff', fontWeight: '600'
+                    });
+                    btnVideo.addEventListener('click', () => {
+                        try { window.open(window.SPECIAL_VIDEO_LINK, '_blank'); } catch (e) { window.location.href = window.SPECIAL_VIDEO_LINK; }
+                    });
+                    actions.appendChild(btnVideo);
+
+                    const btnClose = document.createElement('button');
+                    btnClose.textContent = 'Fechar';
+                    Object.assign(btnClose.style, {
+                        padding: '10px 12px', cursor: 'pointer', borderRadius: '6px',
+                        border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#fff'
+                    });
+                    btnClose.addEventListener('click', () => {
+                        if (document.body.contains(overlay)) document.body.removeChild(overlay);
+                    });
+                    actions.appendChild(btnClose);
+
+                    box.appendChild(actions);
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+                } catch (err) {
+                    console.warn('showAllPetsPopup error', err);
+                }
+            }
+
+            // Função que verifica se todos os pets foram desbloqueados
+            function checkAllPetsUnlocked() {
+                try {
+                    if (!player) return;
+                    if (!Array.isArray(player.unlockedPets)) return;
+                    const totalPetsDefined = (typeof PET_BUFFS !== 'undefined') ? Object.keys(PET_BUFFS).length : 0;
+                    const totalUnlocked = player.unlockedPets.length;
+                    if (totalPetsDefined > 0 && totalUnlocked >= totalPetsDefined) {
+                        showAllPetsPopup();
+                    }
+                } catch (err) {
+                    console.warn('checkAllPetsUnlocked error', err);
+                }
+            }
+
+            // Envolve player.unlockedPets.push para disparar a checagem sempre que um pet é adicionado
+            (function wrapUnlockedPetsPush() {
+                try {
+                    if (!player) return;
+                    if (!Array.isArray(player.unlockedPets)) player.unlockedPets = [];
+                    const origPush = player.unlockedPets.push.bind(player.unlockedPets);
+                    player.unlockedPets.push = function (...args) {
+                        const res = origPush(...args);
+                        Promise.resolve().then(() => checkAllPetsUnlocked());
+                        return res;
+                    };
+                } catch (err) {
+                    console.warn('wrapUnlockedPetsPush error', err);
+                }
+            })();
+
+            // Checa imediatamente no carregamento (caso o jogador já tenha todos)
+            setTimeout(checkAllPetsUnlocked, 600);
+
+            // ---------- Expor utilidades na UI para desenvolvimento / debug ----------
+            window._permClasses = player.permClasses;
+            window.unlockClassForDebug = function (id) { if (!player.permClasses.includes(id)) { player.permClasses.push(id); savePermClasses(); alert('Classe ' + id + ' desbloqueada para debug'); } };
+
+            // final: garante que o HUD seja atualizado inicialmente
+            updateHpDisplay();
+            if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+
+        })();
+
+        (function () {
+            const gear = document.getElementById('modGearBtn');
+            const panel = document.getElementById('modMenuPanel');
+            const btnClose = document.getElementById('btnCloseMod');
+            const msg = document.getElementById('modMenuMessage');
+
+            // triple-click counter with timeout
+            let clickCount = 0;
+            let clickTimer = null;
+            gear.addEventListener('click', () => {
+                clickCount++;
+                if (clickTimer) clearTimeout(clickTimer);
+                clickTimer = setTimeout(() => { clickCount = 0; }, 1000);
+                if (clickCount >= 3) {
+                    clickCount = 0;
+                    toggleModPanel(true);
+                }
+            });
+
+            btnClose.addEventListener('click', () => toggleModPanel(false));
+            function toggleModPanel(show) {
+                panel.style.display = show ? 'block' : 'none';
+                if (show) populatePetSelect();
+            }
+
+            // helpers to show short messages
+            function showMsg(t) {
+                msg.textContent = t;
+                setTimeout(() => { if (msg.textContent === t) msg.textContent = ''; }, 2500);
+            }
+
+            // Fill pet select options from PET_BUFFS keys (fallback to player.unlockedPets)
+            function populatePetSelect() {
+                const sel = document.getElementById('modPetSelect');
+                sel.innerHTML = '';
+                let petNames = [];
+                if (typeof PET_BUFFS !== 'undefined') petNames = Object.keys(PET_BUFFS);
+                // fallback: include unlockedPets
+                if ((!petNames || petNames.length === 0) && Array.isArray(player.unlockedPets)) petNames = Array.from(new Set(player.unlockedPets));
+                petNames.forEach(p => {
+                    const opt = document.createElement('option'); opt.value = p; opt.textContent = p;
+                    sel.appendChild(opt);
+                });
+                if (petNames.length === 0) {
+                    const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Nenhum pet disponível'; sel.appendChild(opt);
+                }
+            }
+
+            // MOD ACTIONS:
+            function giveHugeElixir() {
+                player.elixir = (Number(player.elixir) || 0) + 99999;
+                if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+                showMsg('+99.999 Elixir adicionado');
+            }
+
+            function giveAllPets() {
+                const petNames = (typeof PET_BUFFS !== 'undefined') ? Object.keys(PET_BUFFS) : (Array.isArray(player.unlockedPets) ? [] : []);
+                if (petNames.length === 0) {
+                    showMsg('Nenhum pet listado (PET_BUFFS indefinido).');
+                    return;
+                }
+                petNames.forEach(p => givePetDirect(p));
+                if (typeof updatePetsPanel === 'function') updatePetsPanel();
+                showMsg('Todos os pets foram dados (ou convertidos em Elixir se duplicados).');
+            }
+
+            function giveEggs() {
+                const eggTypes = ['eggCommon', 'eggRare', 'eggEpic', 'eggMystic', 'eggLegendary'];
+                eggTypes.forEach(et => {
+                    if (typeof giveItem === 'function') giveItem(et, 20);
+                });
+                if (typeof updateHUD === 'function') updateHUD();
+                showMsg('20 ovos de cada raridade adicionados.');
+            }
+
+            function spawnSDAtPlayer() {
+                if (typeof spawnSuperDefender === 'function') {
+                    spawnSuperDefender(player.x, player.y, null);
+                    showMsg('Super Defensor spawnado na sua posição.');
+                } else {
+                    showMsg('Função spawnSuperDefender não encontrada.');
+                }
+            }
+
+            function spawnPlantFree() {
+                if (typeof spawnPlantAt === 'function') {
+                    spawnPlantAt(player.x + 80, player.y);
+                    showMsg('Usina spawnada grátis perto do player.');
+                } else {
+                    showMsg('Função spawnPlantAt não encontrada.');
+                }
+            }
+
+            function giveSpecificPetFromSelect() {
+                const sel = document.getElementById('modPetSelect');
+                const pet = sel.value;
+                if (!pet) { showMsg('Selecione um pet válido.'); return; }
+                givePetDirect(pet);
+                if (typeof updatePetsPanel === 'function') updatePetsPanel();
+            }
+
+            // Reuse game logic for giving a pet (mimic chest/egg behavior)
+            function givePetDirect(petName) {
+                try {
+                    if (!Array.isArray(player.unlockedPets)) player.unlockedPets = [];
+                    const isDuplicate = player.unlockedPets.includes(petName);
+                    const elixirGained = isDuplicate ? (DUPLICATE_ELIXIR_VALUES?.[petName] || 0) * (abilities?.Tatu?.isActive ? 1.5 : 1) : 0;
+                    if (isDuplicate) {
+                        player.elixir = (Number(player.elixir) || 0) + Math.ceil(elixirGained);
+                    } else {
+                        player.unlockedPets.push(petName);
+                        if (!Array.isArray(activePets)) window.activePets = [];
+                        activePets.push({ x: player.x, y: player.y, type: petName });
+                    }
+                    if (typeof updateElixirDisplay === 'function') updateElixirDisplay();
+                } catch (err) {
+                    console.error('Erro ao dar pet:', err);
+                }
+            }
+
+            // Attach to buttons
+            document.getElementById('btnHugeElixir').addEventListener('click', giveHugeElixir);
+            document.getElementById('btnGiveAllPets').addEventListener('click', giveAllPets);
+            document.getElementById('btnGiveEggs').addEventListener('click', giveEggs);
+            document.getElementById('btnSpawnSD').addEventListener('click', spawnSDAtPlayer);
+            document.getElementById('btnSpawnPlantFree').addEventListener('click', spawnPlantFree);
+            document.getElementById('btnGiveSpecificPet').addEventListener('click', giveSpecificPetFromSelect);
+
+            // expose a debug helper
+            window.__modMenu = { givePetDirect, giveHugeElixir, giveEggs, spawnSDAtPlayer, spawnPlantFree };
+
+        })();
+
+    </script>
+</body>
+
+</html>
