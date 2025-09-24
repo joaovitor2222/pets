@@ -358,6 +358,52 @@
                 font-size: 14px !important;
             }
         }
+
+        /* coloca no bottom-right e evita sobrepor botões (desktop) */
+        #langSelectorWrap {
+            position: fixed;
+            right: 12px;
+            bottom: 12px;
+            /* moved to bottom */
+            top: auto !important;
+            z-index: 30;
+            /* baixo o suficiente para não cobrir modals, alto o suficiente p/ UI */
+            background: rgba(255, 255, 255, 0.92);
+            padding: 6px 8px;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #langSelectorWrap label {
+            font-size: 12px;
+            color: #222;
+            margin: 0;
+        }
+
+        #langSelectorWrap select {
+            font-size: 13px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #bbb;
+            background: white;
+        }
+
+        /* Em telas pequenas levantamos o seletor para não colidir com os botões (que ficam em bottom:80px) */
+        @media (max-width: 700px),
+        (max-height: 420px) {
+            #langSelectorWrap {
+                right: 8px;
+                bottom: 92px;
+                /* sobe um pouco pra ficar acima dos botões centrais/bottom */
+                padding: 5px 6px;
+                z-index: 70;
+                /* torna mais visível em mobile (opcional) */
+            }
+        }
     </style>
 </head>
 
@@ -447,9 +493,22 @@
         <div class="stick"></div>
     </div>
 
+    <div id="langSelectorWrap">
+        <label for="langSelect">Idioma:</label>
+        <select id="langSelect" aria-label="Selecionar idioma">
+            <option value="pt-BR">Português (BR)</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
+        </select>
+    </div>
 
     <script>
         // --- 1. CONFIGURAÇÃO BÁSICA ---
+
         const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
         const FPS = 60;
         let W = canvas.width = window.innerWidth; let H = canvas.height = window.innerHeight;
@@ -460,6 +519,724 @@
         const player = { x: 0, y: 0, size: 20, baseSpeed: 4, inventory: [], invSize: 6, selectedSlot: 0, elixir: 0, unlockedPets: [], activePet: null, passivePet: null, passivePet2: null, dualUpgrade: false, tripleUpgrade: false };
         const keys = {};
         window.addEventListener('keydown', e => keys[e.key] = true); window.addEventListener('keyup', e => keys[e.key] = false);
+        // expõe player também em window para evitar inconsistências entre `player` e `window.player`
+        window.player = player;
+
+        (function () {
+            // keys: pt-BR (original), en, es, fr, de, ja, zh
+            const dict = {
+                "pt-BR": {
+                    langName: "Português (BR)",
+                    btnHatch: "Chocar Ovo",
+                    btnConvertEggs: "Converter Ovos",
+                    btnTatuAbility: "Ativar Sorte",
+                    btnTucanoAbility: "Ativar Tucano",
+                    btnOpenShop: "Loja",
+                    btnMyPets: "Meus Pets",
+                    elixirPrefix: "Elixir:",
+                    hpTemplate: "HP: {hp} / {max}",
+                    shopTitle: "Loja de Baús & Upgrades",
+                    buyButton: "Comprar",
+                    closeBtn: "X",
+                    chest_common: "Baú Comum (50 Elixir)",
+                    chest_rare: "Baú Raro (400 Elixir)",
+                    chest_legendary: "Baú Lendário (2000 Elixir)",
+                    chest_dual: "Upgrade: 2 Pets Ativos (1500 Elixir)",
+                    chest_triple: "Upgrade: 3 Pets Ativos (3300 Elixir)",
+                    chest_plant: "Usina de Corda (3200 Elixir)",
+                    chest_fuelpack: "Pack de 3 Madeiras (400 Elixir)",
+                    petsTitle: "Meus Pets",
+                    petPanelInstruction: "Ative 1 pet Principal. Compre upgrades para mais slots.",
+                    noActivePetName: "Nenhum Pet Ativo",
+                    noActivePetBuff: "Ative um pet para ganhar bônus!",
+                    purchased: "Adquirido",
+                    elixirInsufficient: "Elixir insuficiente!",
+                    youAlreadyHave: "Você já tem um(a)",
+                    convertedToElixir: "Convertido em",
+                    congratsGotPet: "Parabéns! Um ovo chocou e você conseguiu um(a)",
+                    conversionFailed: "A conversão falhou. Tente novamente quando a habilidade recarregar.",
+                    successConversion: "Sucesso! Seus ovos foram convertidos em um",
+                    // mensagens comuns
+                    bonusCapivara: "Bônus Capivara! Você abriu um baú grátis",
+                    bonusOnca: "Bônus Onça-Pintada! Baú grátis",
+                    // mod menu
+                    modMenuTitle: "Mod Menu",
+                    btnHugeElixir: "Elixir +99.999 por clique",
+                    btnGiveAllPets: "Dar todos os pets",
+                    btnGiveEggs: "Dar 20 de cada ovo",
+                    btnSpawnSD: "Spawnar Super Defensor na posição do player",
+                    btnGiveSpecificPet: "Dar Pet Selecionado",
+                    btnSpawnPlantFree: "Spawnar Usina grátis na posição do player",
+                    selectPetValid: "Selecione um pet válido."
+                },
+                "en": {
+                    langName: "English",
+                    btnHatch: "Hatch Egg",
+                    btnConvertEggs: "Convert Eggs",
+                    btnTatuAbility: "Activate Luck",
+                    btnTucanoAbility: "Activate Toucan",
+                    btnOpenShop: "Shop",
+                    btnMyPets: "My Pets",
+                    elixirPrefix: "Elixir:",
+                    hpTemplate: "HP: {hp} / {max}",
+                    shopTitle: "Chests & Upgrades Shop",
+                    buyButton: "Buy",
+                    closeBtn: "X",
+                    chest_common: "Common Chest (50 Elixir)",
+                    chest_rare: "Rare Chest (400 Elixir)",
+                    chest_legendary: "Legendary Chest (2000 Elixir)",
+                    chest_dual: "Upgrade: 2 Active Pets (1500 Elixir)",
+                    chest_triple: "Upgrade: 3 Active Pets (3300 Elixir)",
+                    chest_plant: "Rope Plant (3200 Elixir)",
+                    chest_fuelpack: "Pack of 3 Wood (400 Elixir)",
+                    petsTitle: "My Pets",
+                    petPanelInstruction: "Activate 1 main pet. Buy upgrades for more slots.",
+                    noActivePetName: "No Active Pet",
+                    noActivePetBuff: "Activate a pet to gain bonuses!",
+                    purchased: "Purchased",
+                    elixirInsufficient: "Insufficient Elixir!",
+                    youAlreadyHave: "You already have",
+                    convertedToElixir: "Converted into",
+                    congratsGotPet: "Congrats! An egg hatched and you got a",
+                    conversionFailed: "Conversion failed. Try again when ability recharges.",
+                    successConversion: "Success! Your eggs converted into a",
+                    bonusCapivara: "Capybara Bonus! You opened a free chest",
+                    bonusOnca: "Jaguar Bonus! Free chest",
+                    modMenuTitle: "Mod Menu",
+                    btnHugeElixir: "Elixir +99,999 per click",
+                    btnGiveAllPets: "Give all pets",
+                    btnGiveEggs: "Give 20 of each egg",
+                    btnSpawnSD: "Spawn Super Defender at player",
+                    btnGiveSpecificPet: "Give Selected Pet",
+                    btnSpawnPlantFree: "Spawn Plant near player",
+                    selectPetValid: "Select a valid pet."
+                },
+                "es": {
+                    langName: "Español",
+                    btnHatch: "Eclosionar Huevo",
+                    btnConvertEggs: "Convertir Huevos",
+                    btnTatuAbility: "Activar Suerte",
+                    btnTucanoAbility: "Activar Tucán",
+                    btnOpenShop: "Tienda",
+                    btnMyPets: "Mis Mascotas",
+                    elixirPrefix: "Elixir:",
+                    hpTemplate: "HP: {hp} / {max}",
+                    shopTitle: "Tienda de Cofres y Mejoras",
+                    buyButton: "Comprar",
+                    closeBtn: "X",
+                    chest_common: "Cofre Común (50 Elixir)",
+                    chest_rare: "Cofre Raro (400 Elixir)",
+                    chest_legendary: "Cofre Legendario (2000 Elixir)",
+                    chest_dual: "Mejora: 2 Mascotas Activas (1500 Elixir)",
+                    chest_triple: "Mejora: 3 Mascotas Activas (3300 Elixir)",
+                    chest_plant: "Planta de Cuerda (3200 Elixir)",
+                    chest_fuelpack: "Pack de 3 Maderas (400 Elixir)",
+                    petsTitle: "Mis Mascotas",
+                    petPanelInstruction: "Activa 1 mascota Principal. Compra mejoras para más ranuras.",
+                    noActivePetName: "Ninguna Mascota Activa",
+                    noActivePetBuff: "Activa una mascota para obtener bonos!",
+                    purchased: "Adquirido",
+                    elixirInsufficient: "¡Elixir insuficiente!",
+                    youAlreadyHave: "Ya tienes un(a)",
+                    convertedToElixir: "Convertido en",
+                    congratsGotPet: "¡Felicidades! Un huevo eclosionó y conseguiste un(a)",
+                    conversionFailed: "La conversión falló. Intenta de nuevo cuando la habilidad recargue.",
+                    successConversion: "¡Éxito! Tus huevos se convirtieron en un",
+                    bonusCapivara: "¡Bono Capibara! Abriste un cofre gratis",
+                    bonusOnca: "¡Bono Jaguar! Cofre gratis",
+                    modMenuTitle: "Menú Mod",
+                    btnHugeElixir: "Elixir +99.999 por clic",
+                    btnGiveAllPets: "Dar todas las mascotas",
+                    btnGiveEggs: "Dar 20 de cada huevo",
+                    btnSpawnSD: "Aparecer Super Defensor en la posición del jugador",
+                    btnGiveSpecificPet: "Dar Mascota Seleccionada",
+                    btnSpawnPlantFree: "Aparecer Planta cerca del jugador",
+                    selectPetValid: "Selecciona una mascota válida."
+                },
+                "fr": {
+                    langName: "Français",
+                    btnHatch: "Faire Éclore",
+                    btnConvertEggs: "Convertir Œufs",
+                    btnTatuAbility: "Activer Chance",
+                    btnTucanoAbility: "Activer Toucan",
+                    btnOpenShop: "Boutique",
+                    btnMyPets: "Mes Pets",
+                    elixirPrefix: "Elixir:",
+                    hpTemplate: "HP: {hp} / {max}",
+                    shopTitle: "Boutique Coffres & Améliorations",
+                    buyButton: "Acheter",
+                    closeBtn: "X",
+                    chest_common: "Coffre Commun (50 Elixir)",
+                    chest_rare: "Coffre Rare (400 Elixir)",
+                    chest_legendary: "Coffre Légendaire (2000 Elixir)",
+                    chest_dual: "Amélioration: 2 Pets Actifs (1500 Elixir)",
+                    chest_triple: "Amélioration: 3 Pets Actifs (3300 Elixir)",
+                    chest_plant: "Usine de Corde (3200 Elixir)",
+                    chest_fuelpack: "Pack de 3 Bois (400 Elixir)",
+                    petsTitle: "Mes Pets",
+                    petPanelInstruction: "Activez 1 pet principal. Achetez des améliorations pour plus d'emplacements.",
+                    noActivePetName: "Aucun Pet Actif",
+                    noActivePetBuff: "Activez un pet pour obtenir des bonus!",
+                    purchased: "Acheté",
+                    elixirInsufficient: "Elixir insuffisant!",
+                    youAlreadyHave: "Vous avez déjà",
+                    convertedToElixir: "Converti en",
+                    congratsGotPet: "Félicitations! Un œuf a éclos et vous avez obtenu un(e)",
+                    conversionFailed: "La conversion a échoué. Réessayez après la recharge.",
+                    successConversion: "Succès! Vos œufs ont été convertis en un",
+                    bonusCapivara: "Bonus Capivara! Vous avez ouvert un coffre gratuit",
+                    bonusOnca: "Bonus Jaguar! Coffre gratuit",
+                    modMenuTitle: "Menu Mod",
+                    btnHugeElixir: "Elixir +99.999 par clic",
+                    btnGiveAllPets: "Donner tous les pets",
+                    btnGiveEggs: "Donner 20 de chaque œuf",
+                    btnSpawnSD: "Faire apparaître Super Défenseur au joueur",
+                    btnGiveSpecificPet: "Donner le pet sélectionné",
+                    btnSpawnPlantFree: "Faire apparaître Usine près du joueur",
+                    selectPetValid: "Sélectionnez un pet valide."
+                },
+                "de": {
+                    langName: "Deutsch",
+                    btnHatch: "Ei Ausbrüten",
+                    btnConvertEggs: "Eier Konvertieren",
+                    btnTatuAbility: "Glück Aktivieren",
+                    btnTucanoAbility: "Tukan Aktivieren",
+                    btnOpenShop: "Shop",
+                    btnMyPets: "Meine Pets",
+                    elixirPrefix: "Elixier:",
+                    hpTemplate: "HP: {hp} / {max}",
+                    shopTitle: "Kisten & Upgrades Shop",
+                    buyButton: "Kaufen",
+                    closeBtn: "X",
+                    chest_common: "Gewöhnliche Truhe (50 Elixir)",
+                    chest_rare: "Seltene Truhe (400 Elixir)",
+                    chest_legendary: "Legendäre Truhe (2000 Elixir)",
+                    chest_dual: "Upgrade: 2 aktive Pets (1500 Elixir)",
+                    chest_triple: "Upgrade: 3 aktive Pets (3300 Elixir)",
+                    chest_plant: "Seilwerk (3200 Elixir)",
+                    chest_fuelpack: "Pack 3 Holz (400 Elixir)",
+                    petsTitle: "Meine Pets",
+                    petPanelInstruction: "Aktiviere 1 Haupt-Pet. Kaufe Upgrades für mehr Slots.",
+                    noActivePetName: "Kein aktives Pet",
+                    noActivePetBuff: "Aktiviere ein Pet, um Boni zu erhalten!",
+                    purchased: "Erworben",
+                    elixirInsufficient: "Nicht genügend Elixir!",
+                    youAlreadyHave: "Du hast bereits",
+                    convertedToElixir: "Konvertiert in",
+                    congratsGotPet: "Glückwunsch! Ein Ei schlüpfte und du bekommst ein(e)",
+                    conversionFailed: "Konvertierung fehlgeschlagen. Versuche es erneut, wenn die Fähigkeit bereit ist.",
+                    successConversion: "Erfolg! Deine Eier wurden umgewandelt in ein",
+                    bonusCapivara: "Capivara Bonus! Du hast eine Gratistruhe geöffnet",
+                    bonusOnca: "Onça Bonus! Gratistruhe",
+                    modMenuTitle: "Mod Menü",
+                    btnHugeElixir: "Elixir +99.999 pro Klick",
+                    btnGiveAllPets: "Alle Pets geben",
+                    btnGiveEggs: "Gebe 20 von jedem Ei",
+                    btnSpawnSD: "Spawn Super Defender am Spieler",
+                    btnGiveSpecificPet: "Gewähltes Pet geben",
+                    btnSpawnPlantFree: "Pflanze beim Spieler spawnen",
+                    selectPetValid: "Wähle ein gültiges Pet."
+                },
+                "ja": {
+                    langName: "日本語",
+                    btnHatch: "卵を孵す",
+                    btnConvertEggs: "卵を変換",
+                    btnTatuAbility: "幸運を発動",
+                    btnTucanoAbility: "トゥカンを発動",
+                    btnOpenShop: "ショップ",
+                    btnMyPets: "マイペット",
+                    elixirPrefix: "エリクサー:",
+                    hpTemplate: "HP: {hp} / {max}",
+                    shopTitle: "チェスト & アップグレードショップ",
+                    buyButton: "購入",
+                    closeBtn: "X",
+                    chest_common: "通常のチェスト (50 エリクサー)",
+                    chest_rare: "レアチェスト (400 エリクサー)",
+                    chest_legendary: "レジェンダリーチェスト (2000 エリクサー)",
+                    chest_dual: "アップグレード: ペット2体有効 (1500 エリクサー)",
+                    chest_triple: "アップグレード: ペット3体有効 (3300 エリクサー)",
+                    chest_plant: "ロープ工場 (3200 エリクサー)",
+                    chest_fuelpack: "木材3個パック (400 エリクサー)",
+                    petsTitle: "マイペット",
+                    petPanelInstruction: "メインペットを1体有効にします。スロットを増やすにはアップグレードを購入してください。",
+                    noActivePetName: "アクティブなペットなし",
+                    noActivePetBuff: "ペットを有効化してボーナスを得よう!",
+                    purchased: "取得済み",
+                    elixirInsufficient: "エリクサーが不足しています！",
+                    youAlreadyHave: "すでに持っています",
+                    convertedToElixir: "に変換されました",
+                    congratsGotPet: "おめでとう！卵が孵化して、あなたは入手しました",
+                    conversionFailed: "変換に失敗しました。スキルの再充填後に再試行してください。",
+                    successConversion: "成功！あなたの卵は次のものに変換されました",
+                    bonusCapivara: "カピバラボーナス！無料のチェストを開けました",
+                    bonusOnca: "ジャガーボーナス！無料チェスト",
+                    modMenuTitle: "Mod メニュー",
+                    btnHugeElixir: "クリックでエリクサー +99,999",
+                    btnGiveAllPets: "全てのペットを与える",
+                    btnGiveEggs: "各卵を20個与える",
+                    btnSpawnSD: "プレイヤー位置にスーパーディフェンダーを出現",
+                    btnGiveSpecificPet: "選択したペットを与える",
+                    btnSpawnPlantFree: "プレイヤーの近くに工場を出現",
+                    selectPetValid: "有効なペットを選択してください。"
+                },
+                "zh": {
+                    langName: "中文",
+                    btnHatch: "孵化蛋",
+                    btnConvertEggs: "转换蛋",
+                    btnTatuAbility: "激活幸运",
+                    btnTucanoAbility: "激活巨嘴鸟",
+                    btnOpenShop: "商店",
+                    btnMyPets: "我的宠物",
+                    elixirPrefix: "圣露:",
+                    hpTemplate: "HP: {hp} / {max}",
+                    shopTitle: "宝箱与升级商店",
+                    buyButton: "购买",
+                    closeBtn: "X",
+                    chest_common: "普通宝箱 (50 圣露)",
+                    chest_rare: "稀有宝箱 (400 圣露)",
+                    chest_legendary: "传说宝箱 (2000 圣露)",
+                    chest_dual: "升级：2 个激活宠物 (1500 圣露)",
+                    chest_triple: "升级：3 个激活宠物 (3300 圣露)",
+                    chest_plant: "绳索工厂 (3200 圣露)",
+                    chest_fuelpack: "3 木材包 (400 圣露)",
+                    petsTitle: "我的宠物",
+                    petPanelInstruction: "激活 1 个主宠。购买升级获得更多槽位。",
+                    noActivePetName: "没有激活的宠物",
+                    noActivePetBuff: "激活宠物以获得增益！",
+                    purchased: "已购买",
+                    elixirInsufficient: "圣露不足！",
+                    youAlreadyHave: "你已经有",
+                    convertedToElixir: "已转换为",
+                    congratsGotPet: "恭喜！一个蛋孵化了，你获得了一个",
+                    conversionFailed: "转换失败。技能冷却结束后再试。",
+                    successConversion: "成功！你的蛋已转换为一个",
+                    bonusCapivara: "水豚奖励！你打开了一个免费宝箱",
+                    bonusOnca: "美洲虎奖励！免费宝箱",
+                    modMenuTitle: "Mod 菜单",
+                    btnHugeElixir: "每次点击 +99,999 圣露",
+                    btnGiveAllPets: "给予所有宠物",
+                    btnGiveEggs: "给予每种蛋 20 个",
+                    btnSpawnSD: "在玩家位置生成超级防御者",
+                    btnGiveSpecificPet: "给予所选宠物",
+                    btnSpawnPlantFree: "在玩家附近生成工厂",
+                    selectPetValid: "请选择有效的宠物。"
+                }
+            };
+            const petDesc = {
+                "pt-BR": {
+                    "Capivara": "+10% Velocidade.\n25% chance de abrir 1 baú grátis.",
+                    "Tucano": "ATIVA: Converte 10 Ovos (Comuns/Raros) em 1 ovo Místico ou Lendário. 5% de chance de dropar um ovo extra",
+                    "Onça-Pintada": "+25% Velocidade.\nPASSIVA: 2% de chance por segundo de gerar 1 baú grátis.",
+                    "Lobo-Guará": "PASSIVA: Garante ovo raro+ a cada 3 baús.",
+                    "Boto-cor-de-rosa": "15% chance de melhorar a raridade de um ovo. e diminui o preco dos bau em 50%",
+                    "Dragão da Floresta": "+25% Vel. e 5% de ovo extra.\nPASSIVA: Ressuscita inimigos como aliados.",
+                    "Arara-Azul": "LENDÁRIA: Dobra o efeito do outro pet ativo.\nSinergia c/ Pica-Pau (Passivo): 80% conversão.\nSinergia c/ Tatu: Sorte dura 2x e recarrega 2x mais rápido.",
+                    "Pica-Pau": "ATIVA: Converte 5 Ovos Comuns em 1 de raridade maior (30% de chance).",
+                    "Tatu": "ATIVA: 'Sorte' por 60s (+50% Elixir, chance do Pica-Pau vai para 50%).",
+                    "Mico": "PASSIVA: +40% de chance de ganhar 1 ovo extra por baú. ATIVA (Trapaceiro): reseta cooldowns de todas as habilidades (exceto a do Mico). Cooldown: 10min (5min com Arara)."
+                },
+                "en": {
+                    "Capivara": "+10% Speed.\n25% chance to open 1 free chest.",
+                    "Tucano": "ACTIVE: Converts 10 Eggs (Common/Rare) into 1 Mystic or Legendary egg. 5% chance to drop an extra egg.",
+                    "Onça-Pintada": "+25% Speed.\nPASSIVE: 2% chance per second to generate 1 free chest.",
+                    "Lobo-Guará": "PASSIVE: Guarantees a rare+ egg every 3 chests.",
+                    "Boto-cor-de-rosa": "15% chance to upgrade an egg's rarity and reduces chest prices by 50%.",
+                    "Dragão da Floresta": "+25% Speed and 5% extra egg.\nPASSIVE: Revives enemies as allies.",
+                    "Arara-Azul": "LEGENDARY: Doubles the effect of the other active pet.\nSynergy with Woodpecker (Passive): 80% conversion.\nSynergy with Armadillo: Luck lasts 2× and recharges 2× faster.",
+                    "Pica-Pau": "ACTIVE: Converts 5 Common Eggs into 1 of higher rarity (30% chance).",
+                    "Tatu": "ACTIVE: 'Luck' for 60s (+50% Elixir, Woodpecker chance goes to 50%).",
+                    "Mico": "PASSIVE: +40% chance to gain 1 extra egg per chest.\nACTIVE (Trickster): Resets cooldowns of all abilities (except Mico's). Cooldown: 10min (5min with Macaw)."
+                },
+                "es": {
+                    "Capivara": "+10% Velocidad.\n25% de probabilidad de abrir 1 cofre gratis.",
+                    "Tucano": "ACTIVA: Convierte 10 Huevos (Comunes/Raros) en 1 huevo Místico o Legendario. 5% de probabilidad de soltar un huevo extra.",
+                    "Onça-Pintada": "+25% Velocidad.\nPASIVA: 2% de probabilidad por segundo de generar 1 cofre gratis.",
+                    "Lobo-Guará": "PASIVA: Garantiza huevo raro+ cada 3 cofres.",
+                    "Boto-cor-de-rosa": "15% de probabilidad de mejorar la rareza de un huevo y reduce el precio de cofres en 50%.",
+                    "Dragão da Floresta": "+25% Vel. y 5% de huevo extra.\nPASIVA: Resucita enemigos como aliados.",
+                    "Arara-Azul": "LEGENDARIA: Duplica el efecto del otro pet activo.\nSinergia con Pica-Pau (Pasiva): 80% conversión.\nSinergia con Tatu: Suerte dura 2x y recarga 2x más rápido.",
+                    "Pica-Pau": "ACTIVA: Convierte 5 Huevos Comunes en 1 de mayor rareza (30% probabilidad).",
+                    "Tatu": "ACTIVA: 'Suerte' por 60s (+50% Elixir, la probabilidad del Pica-Pau pasa a 50%).",
+                    "Mico": "PASIVA: +40% de probabilidad de ganar 1 huevo extra por cofre.\nACTIVA (Tramposo): reinicia los cooldowns de todas las habilidades (excepto la del Mico). Enfriamiento: 10min (5min con Arara)."
+                },
+                "fr": {
+                    "Capivara": "+10% Vitesse.\n25% de chance d'ouvrir 1 coffre gratuit.",
+                    "Tucano": "ACTIF : Convertit 10 Œufs (Communs/Rares) en 1 œuf Mystique ou Légendaire. 5% de chance de lâcher un œuf supplémentaire.",
+                    "Onça-Pintada": "+25% Vitesse.\nPASSIF : 2% de chance par seconde de générer 1 coffre gratuit.",
+                    "Lobo-Guará": "PASSIF : Garantit un œuf rare+ tous les 3 coffres.",
+                    "Boto-cor-de-rosa": "15% de chance d'améliorer la rareté d'un œuf et réduit le prix des coffres de 50%.",
+                    "Dragão da Floresta": "+25% Vitesse et 5% d'œuf supplémentaire.\nPASSIF : Ressuscite des ennemis comme alliés.",
+                    "Arara-Azul": "LÉGENDAIRE : Double l'effet de l'autre pet actif.\nSynergie avec Pic (Passif) : 80% de conversion.\nSynergie avec Tatou : La chance dure 2x et se recharge 2x plus vite.",
+                    "Pica-Pau": "ACTIF : Convertit 5 Œufs Communs en 1 de rareté supérieure (30% de chance).",
+                    "Tatu": "ACTIF : 'Chance' pendant 60s (+50% Elixir, la chance du Pic passe à 50%).",
+                    "Mico": "PASSIF : +40% de chance d'obtenir 1 œuf supplémentaire par coffre.\nACTIF (Tricheur) : réinitialise les cooldowns de toutes les capacités (sauf celle du Mico). Recharge : 10min (5min avec Arara)."
+                },
+                "de": {
+                    "Capivara": "+10% Geschwindigkeit.\n25% Chance, 1 kostenlose Truhe zu öffnen.",
+                    "Tucano": "AKTIV: Wandelt 10 Eier (Common/Rare) in 1 Mystic- oder Legendary-Ei um. 5% Chance auf ein zusätzliches Ei.",
+                    "Onça-Pintada": "+25% Geschwindigkeit.\nPASSIV: 2% Chance pro Sekunde, eine kostenlose Truhe zu erzeugen.",
+                    "Lobo-Guará": "PASSIV: Garantiert alle 3 Truhen ein seltenes+ Ei.",
+                    "Boto-cor-de-rosa": "15% Chance, die Seltenheit eines Eies zu verbessern und reduziert Truhenpreise um 50%.",
+                    "Dragão da Floresta": "+25% Geschw. und 5% zusätzliches Ei.\nPASSIV: Belebt Gegner als Verbündete wieder.",
+                    "Arara-Azul": "LEGENDÄR: Verdoppelt den Effekt des anderen aktiven Pets.\nSynergie mit Specht (Passiv): 80% Konversion.\nSynergie mit Gürteltier: Glück dauert 2x und lädt 2x schneller nach.",
+                    "Pica-Pau": "AKTIV: Wandelt 5 normale Eier in 1 höherwertiges Ei um (30% Chance).",
+                    "Tatu": "AKTIV: 'Glück' für 60s (+50% Elixier, Specht-Chance geht auf 50%).",
+                    "Mico": "PASSIV: +40% Chance, 1 zusätzliches Ei pro Truhe zu erhalten.\nAKTIV (Betrüger): Setzt Cooldowns aller Fähigkeiten zurück (außer Mico). Cooldown: 10min (5min mit Arara)."
+                },
+                "ja": {
+                    "Capivara": "移動速度+10%。\n25%の確率で無料の宝箱を1つ開ける。",
+                    "Tucano": "アクティブ：10個の卵（通常/レア）を1つのミスティックまたはレジェンダリー卵に変換します。5%で追加の卵をドロップ。",
+                    "Onça-Pintada": "移動速度+25%。\nパッシブ：毎秒2%の確率で無料の宝箱を生成。",
+                    "Lobo-Guará": "パッシブ：3つの宝箱ごとにレア以上の卵を保証します。",
+                    "Boto-cor-de-rosa": "15%の確率で卵のレア度を上げ、宝箱の価格を50%下げます。",
+                    "Dragão da Floresta": "移動速度+25% と 5% の追加卵。\nパッシブ：敵を味方として蘇生します。",
+                    "Arara-Azul": "レジェンダリー：他のアクティブペットの効果を2倍にします。\nキツツキとの相性（パッシブ）：変換率80%。\nアルマジロとの相性：幸運は2倍持続し、2倍速く再チャージします。",
+                    "Pica-Pau": "アクティブ：通常の卵5個を1つ上のレアリティの卵に変換（30%の確率）。",
+                    "Tatu": "アクティブ：60秒間「幸運」(+50%エリクサー、キツツキの確率が50%に)。",
+                    "Mico": "パッシブ：宝箱ごとに40%の確率で追加の卵を獲得。\nアクティブ（いたずら者）：他の能力のクールダウンをリセット（Mico自身を除く）。クールダウン：10分（アルアラ時は5分）。"
+                },
+                "zh": {
+                    "Capivara": "速度+10%。\n25%几率打开1个免费宝箱。",
+                    "Tucano": "主动：将10个蛋（普通/稀有）转换为1个神秘或传说蛋。5%几率掉落额外的蛋。",
+                    "Onça-Pintada": "速度+25%。\n被动：每秒2%几率生成1个免费宝箱。",
+                    "Lobo-Guará": "被动：每3个宝箱保证一个稀有以上的蛋。",
+                    "Boto-cor-de-rosa": "15%几率提升蛋的稀有度，并将宝箱价格降低50%。",
+                    "Dragão da Floresta": "速度+25%并额外5%蛋几率。\n被动：将敌人复活为盟友。",
+                    "Arara-Azul": "传说：使另一个激活宠物的效果翻倍。\n与啄木鸟（被动）协同：80%转换率。\n与犰狳协同：幸运持续2倍并以2倍速度恢复。",
+                    "Pica-Pau": "主动：将5个普通蛋转换为1个更高稀有度的蛋（30%几率）。",
+                    "Tatu": "主动：60秒“幸运”（+50% 圣露，啄木鸟的概率提升至50%）。",
+                    "Mico": "被动：每个宝箱+40%几率获得1个额外蛋。\n主动（欺诈者）：重置所有技能冷却（不包括Mico）。冷却：10分钟（有鹦鹉时5分钟）。"
+                }
+            };
+            // attach into dict so applyTranslations can access them
+            for (const code in petDesc) {
+                if (!dict[code]) dict[code] = {};
+                dict[code].petDescriptions = petDesc[code];
+            }
+            const activateLabels = {
+                "pt-BR": "Ativar (P)",
+                "en": "Activate (P)",
+                "es": "Activar (P)",
+                "fr": "Activer (P)",
+                "de": "Aktivieren (P)",
+                "ja": "有効化 (P)",     // japonês
+                "zh": "激活 (P)"        // chinês simplificado
+            };
+
+            // detector para achar botões "ativar" existentes em PT (ou já traduzidos)
+            const activationRegexes = [
+                /^Ativar\s*(\(P\))?$/i,
+                /^Activate\s*(\(P\))?$/i,
+                /^Activar\s*(\(P\))?$/i,
+                /^Activer\s*(\(P\))?$/i,
+                /^Aktivieren\s*(\(P\))?$/i,
+                /^[\u4e00-\u9fff]+\s*(\(P\))?$/, // simples heurística para CJK (zh/ja)
+            ];
+
+            function isActivateText(text) {
+                if (!text) return false;
+                const t = text.trim();
+                return activationRegexes.some(r => r.test(t));
+            }
+
+            function translateActivateButtons(lang) {
+                const label = activateLabels[lang] || activateLabels['pt-BR'];
+                // procura elementos que pareçam botões (button, a com role=button, etc.)
+                const candidates = Array.from(document.querySelectorAll('button, [role="button"], a'));
+                candidates.forEach(el => {
+                    const txt = (el.textContent || '').trim();
+                    // se já marcado explicitamente por data-i18n, atualiza direto
+                    if (el.dataset && el.dataset.i18n === 'btnActivate') {
+                        el.textContent = label;
+                        return;
+                    }
+                    // se o texto bater com o padrão "Ativar (P)" (em PT ou outras línguas), atualiza e marca
+                    if (isActivateText(txt)) {
+                        el.textContent = label;
+                        if (el.dataset) el.dataset.i18n = 'btnActivate';
+                    }
+                });
+            }
+
+            window.translateActivateButtons = translateActivateButtons;
+
+            // Amarra na API existente de troca de idioma:
+            if (window.setGameLang) {
+                const orig = window.setGameLang.bind(window);
+                window.setGameLang = function (newLang) {
+                    const ok = orig(newLang);
+                    try { updatePetsPanel(); } catch (e) { }
+                    try { translateActivateButtons(newLang); } catch (e) { console.warn('translateActivateButtons err', e); }
+                    return ok;
+                };
+            }
+
+            // roda uma vez na carga (se já houver idioma definido)
+            const initialLang = (window.__gameI18n && window.__gameI18n.lang) ? window.__gameI18n.lang : 'pt-BR';
+            document.addEventListener('DOMContentLoaded', () => translateActivateButtons(initialLang));
+            // e tenta rodar imediatamente caso o DOM já esteja pronto
+            setTimeout(() => translateActivateButtons(initialLang), 150);
+
+            // ------- util simples
+            function el(sel) { return document.querySelector(sel); }
+            function els(sel) { return Array.from(document.querySelectorAll(sel)); }
+            function format(template, vars) {
+                return template.replace(/\{([^}]+)\}/g, (m, k) => (vars && vars[k] !== undefined) ? vars[k] : m);
+            }
+
+            // current language (persist)
+            const stored = localStorage.getItem('__gameLang');
+            let lang = stored || 'pt-BR';
+
+            // prompt selection at first load if not stored
+            if (!stored) {
+                const options = Object.keys(dict).map((k, i) => `${i + 1}. ${dict[k].langName} (${k})`).join('\n');
+                const choice = prompt("Escolha o idioma / Choose language:\n" + options + "\nDigite o número (ex: 1) ou o código (ex: en).", "1");
+                if (choice) {
+                    const code = (choice.trim().length <= 3 && Object.keys(dict)[Number(choice) - 1]) ? Object.keys(dict)[Number(choice) - 1] : (choice.trim());
+                    if (dict[code]) lang = code;
+                    localStorage.setItem('__gameLang', lang);
+                }
+            }
+
+            // função principal de tradução: aplica textos fixos e alguns dinâmicos
+            function applyTranslations(toLang) {
+                if (!dict[toLang]) return;
+                const D = dict[toLang];
+
+                // util: escreve se a chave existir; marca dataset para futuras trocas
+                function write(el, key) {
+                    if (!el) return;
+                    if (!el.dataset) el.dataset = {};
+                    el.dataset.i18n = key; // marca para futuras traduções
+                    if (D[key] !== undefined) el.textContent = D[key];
+                }
+
+                // mapping de seletores -> keys
+                const map = [
+                    ['#btnHatch', 'btnHatch'],
+                    ['#btnConvertEggs', 'btnConvertEggs'],
+                    ['#btnTatuAbility', 'btnTatuAbility'],
+                    ['#btnTucanoAbility', 'btnTucanoAbility'],
+                    ['#btnOpenShop', 'btnOpenShop'],
+                    ['#btnMyPets', 'btnMyPets'],
+                    ['#btnHugeElixir', 'btnHugeElixir'],
+                    ['#btnGiveAllPets', 'btnGiveAllPets'],
+                    ['#btnGiveEggs', 'btnGiveEggs'],
+                    ['#btnSpawnSD', 'btnSpawnSD'],
+                    ['#btnGiveSpecificPet', 'btnGiveSpecificPet'],
+                    ['#btnSpawnPlantFree', 'btnSpawnPlantFree'],
+                    ['#btnCloseShop', 'closeBtn'],
+                    ['#btnClosePets', 'closeBtn'],
+                    ['#btnCloseMod', 'closeBtn']
+                ];
+                map.forEach(([sel, key]) => write(document.querySelector(sel), key));
+
+                // elixir display: mantém valor depois dos dois-pontos — marca chave no span
+                const elixirEl = document.querySelector('#elixirDisplay');
+                if (elixirEl) {
+                    // garante dataset
+                    elixirEl.dataset.i18n = 'elixirPrefix';
+                    const cur = elixirEl.textContent || '';
+                    const parts = cur.split(':');
+                    const val = (parts[1] !== undefined) ? parts.slice(1).join(':').trim() : '';
+                    elixirEl.textContent = D.elixirPrefix + (val ? ' ' + val : '');
+                }
+
+                // hp display (extrai números se possível)
+                const hpEl = document.querySelector('#hpDisplay');
+                if (hpEl) {
+                    hpEl.dataset.i18n = 'hpTemplate';
+                    const cur = hpEl.textContent || '';
+                    const m = cur.match(/(\d+)\s*\/\s*(\d+)/);
+                    const hp = m ? m[1] : '{hp}';
+                    const max = m ? m[2] : '{max}';
+                    hpEl.textContent = format(D.hpTemplate, { hp, max });
+                }
+
+                // shop panel title & items -> marque spans/buttons com data-i18n
+                const shopH2 = document.querySelector('#shopPanel h2');
+                if (shopH2) write(shopH2, 'shopTitle');
+
+                document.querySelectorAll('#shopPanel .shop-item').forEach(item => {
+                    const btn = item.querySelector('button');
+                    const span = item.querySelector('span');
+                    if (!btn || !span) return;
+                    const type = btn.getAttribute('data-type') || (btn.classList.contains('buy-fuel-pack') ? 'fuelpack' : '');
+                    let keyForSpan = null;
+                    if (type === 'common') keyForSpan = 'chest_common';
+                    else if (type === 'rare') keyForSpan = 'chest_rare';
+                    else if (type === 'legendary') keyForSpan = 'chest_legendary';
+                    else if (type === 'dual') keyForSpan = 'chest_dual';
+                    else if (type === 'triple') keyForSpan = 'chest_triple';
+                    else if (type === 'plant') keyForSpan = 'chest_plant';
+                    else if (btn.classList.contains('buy-fuel-pack')) keyForSpan = 'chest_fuelpack';
+                    if (keyForSpan) {
+                        span.dataset.i18n = keyForSpan;
+                        span.textContent = D[keyForSpan];
+                    }
+                    // botão comprar
+                    if (btn) {
+                        btn.dataset.i18n = 'buyButton';
+                        btn.textContent = D.buyButton;
+                    }
+                });
+
+                // pets panel
+                const petsH2 = document.querySelector('#petsPanel h2');
+                if (petsH2) write(petsH2, 'petsTitle');
+                const petInst = document.querySelector('#petPanelInstruction');
+                if (petInst) write(petInst, 'petPanelInstruction');
+                // --- Atualiza descrições dos pets já renderizados no painel (quando troca idioma)
+
+
+                // active pet display — use data-i18n em vez de checar startsWith()
+                const ap = document.querySelector('#activePetDisplay');
+                if (ap) {
+                    const petNameEl = ap.querySelector('.pet-name');
+                    const petBuffEl = ap.querySelector('.pet-buff');
+                    if (petNameEl) {
+                        const activeName = (window.player && window.player.activePet) ? window.player.activePet : null;
+                        if (activeName) {
+                            // se há pet ativo, tenta mostrar nome traduzido via petNames (se houver)
+                            if (D.petNames && D.petNames[activeName]) {
+                                petNameEl.textContent = D.petNames[activeName];
+                                if (!petNameEl.dataset) petNameEl.dataset = {};
+                                petNameEl.dataset.petsource = 'translated';
+                            } else {
+                                // fallback: mostra o nome canônico (activeName) sem marcar 'noActivePetName'
+                                petNameEl.textContent = activeName;
+                                if (petNameEl.dataset && petNameEl.dataset.i18n === 'noActivePetName') delete petNameEl.dataset.i18n;
+                            }
+                        } else {
+                            // sem pet ativo -> usa a chave de "nenhum pet ativo"
+                            const key = petNameEl.dataset && petNameEl.dataset.i18n ? petNameEl.dataset.i18n : 'noActivePetName';
+                            if (D[key] !== undefined) {
+                                petNameEl.textContent = D[key];
+                                if (!petNameEl.dataset) petNameEl.dataset = {};
+                                petNameEl.dataset.i18n = key;
+                            }
+                        }
+                    }
+                    if (petBuffEl) {
+                        // se houver um pet ativo, mostrar a descrição traduzida dele
+                        const activeName = (player && player.activePet) ? player.activePet : null;
+                        if (activeName) {
+                            const petDescTranslated = (dict[toLang] && dict[toLang].petDescriptions && dict[toLang].petDescriptions[activeName]) || (PET_BUFFS[activeName] && PET_BUFFS[activeName].description) || '';
+                            petBuffEl.innerHTML = petDescTranslated.replace(/\n/g, '<br>');
+                        } else {
+                            // fallback para mensagem "nenhum pet ativo"
+                            if (!petBuffEl.dataset) petBuffEl.dataset = {};
+                            if (!petBuffEl.dataset.i18n) petBuffEl.dataset.i18n = 'noActivePetBuff';
+                            const key = petBuffEl.dataset.i18n;
+                            if (D[key] !== undefined) petBuffEl.textContent = D[key];
+                        }
+                    }
+                }
+
+                // mod menu title
+                const modH3 = document.querySelector('#modMenuPanel h3');
+                if (modH3) write(modH3, 'modMenuTitle');
+
+                // traduz qualquer outro elemento com data-i18n já marcado (útil para popups dinâmicos
+                document.querySelectorAll('[data-i18n]').forEach(elm => {
+                    const k = elm.dataset.i18n;
+                    if (k && D[k] !== undefined) elm.textContent = D[k];
+                });
+            }
+
+            // Intercepta alert() para traduzir mensagens fixas e alguns templates simples
+            const _nativeAlert = window.alert.bind(window);
+            window.alert = function (msg) {
+                try {
+                    if (typeof msg === 'string') {
+                        const D = dict[lang] || dict['pt-BR'];
+                        // templates simples
+                        if (msg.startsWith("Você já tem um(a)")) {
+                            // "Você já tem um(a) PET! Convertido em N de Elixir."
+                            // extrai pet e valor
+                            const m = msg.match(/Você já tem um\(a\)\s+(.+?)!.*?(\d+)\s+de Elixir/);
+                            if (m) {
+                                const pet = m[1];
+                                const val = m[2];
+                                _nativeAlert(`${D.youAlreadyHave} ${pet}! ${D.convertedToElixir} ${val} ${D.elixirPrefix.replace(':', '')}`);
+                                return;
+                            }
+                            // fallback: simple replace
+                            msg = msg.replace("Você já tem um(a)", D.youAlreadyHave).replace("Convertido em", "" + D.convertedToElixir);
+                        } else if (msg.startsWith("Parabéns! Um ovo chocou")) {
+                            // "Parabéns! Um ovo chocou e você conseguiu um(a) PET!"
+                            const m = msg.match(/Parabéns!\s*Um ovo chocou e você conseguiu um\(a\)\s*(.+?)!/);
+                            if (m) {
+                                const pet = m[1];
+                                _nativeAlert(`${D.congratsGotPet} ${pet}!`);
+                                return;
+                            }
+                            msg = msg.replace("Parabéns! Um ovo chocou e você conseguiu um(a)", D.congratsGotPet);
+                        } else if (msg.includes("Elixir insuficiente")) {
+                            msg = D.elixirInsufficient;
+                        } else if (msg.includes("A conversão falhou")) {
+                            msg = D.conversionFailed;
+                        } else if (msg.includes("Sucesso! Seus ovos foram convertidos em um")) {
+                            // deixa traduzido mais simples
+                            msg = D.successConversion + msg.replace(/Sucesso! Seus ovos foram convertidos em um\s*/, '');
+                        } else if (msg.includes("Baú grátis")) {
+                            // mensagens de baú bônus
+                            if (msg.includes("Capivara")) msg = D.bonusCapivara;
+                            else if (msg.includes("Onça") || msg.includes("Onça-Pintada")) msg = D.bonusOnca;
+                        } else {
+                            // tenta mapear mensagens curtas exatas
+                            for (const k in dict['pt-BR']) {
+                                const pt = dict['pt-BR'][k];
+                                if (typeof pt === 'string' && pt === msg) {
+                                    msg = dict[lang][k] || msg;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+                _nativeAlert(msg);
+            };
+
+
+
+            // API global para trocar idioma em runtime
+            // CORRIGIDO: Função para trocar de idioma
+            // Substituir implementação bugada por esta:
+            window.setGameLang = function (newLang) {
+                // valida
+                if (!dict || !dict[newLang]) return false;
+
+                // atualiza referência interna e persistência
+                lang = newLang;
+                localStorage.setItem('__gameLang', newLang);
+
+                // aplica traduções (elementos estáticos e dinâmicos tratados por applyTranslations)
+                try { applyTranslations(newLang); } catch (e) { console.warn('applyTranslations failed', e); }
+
+                // atualiza painel de pets se estiver visível (a função existe no ficheiro)
+                try { if (typeof updatePetsPanel === 'function') updatePetsPanel(); } catch (e) { console.warn('updatePetsPanel err', e); }
+
+                // força atualização do active pet display (garante que a descrição troque)
+                try { if (typeof refreshActivePetDisplay === 'function') refreshActivePetDisplay(); } catch (e) { /* ok */ }
+
+                // atualiza objeto exposto (caso outro código leia window.__gameI18n)
+                if (window.__gameI18n) window.__gameI18n.lang = newLang;
+
+                return true;
+            };
+
+
+            // aplica ao carregar
+            document.addEventListener('DOMContentLoaded', () => applyTranslations(lang));
+            // se o script já rodou antes do DOMContentLoaded (nosso <script> fica no final), chama diretamente
+            applyTranslations(lang);
+
+            // expõe dicionário e idioma atual
+            window.__gameI18n = { dict, lang, setGameLang: window.setGameLang };
+
+        })();
 
         // --- Usina / Inimigo / Superdefensor (globals)
         const plants = [];            // usinas no mapa
@@ -1299,7 +2076,7 @@
             // Considera até 3 slots (principal + 2 passivos)
             const allActivePets = [player.activePet, player.passivePet, player.passivePet2].filter(Boolean);
             if (allActivePets.length === 0) {
-                activePetDisplay.innerHTML = '<div class="pet-name">Nenhum Pet Ativo</div><div class="pet-buff">Ative um pet para ganhar bônus!</div>';
+                //activePetDisplay.innerHTML = '<div class="pet-name">Nenhum Pet Ativo</div><div class="pet-buff">Ative um pet para ganhar bônus!</div>';
                 // Se a Onça não está ativa, para o proc
                 stopOncaProc();
                 return;
@@ -1373,14 +2150,38 @@
             }
 
             // 6. Atualiza a UI com as informações e botões corretos (até 3 pets)
-            const main = player.activePet ? `<div class="pet-name">Principal: ${player.activePet}</div><div class="pet-buff">${PET_BUFFS[player.activePet].description}</div>` : '';
-            const pass1 = player.passivePet ? `<div class="pet-name" style="margin-top: 5px;">Passivo 1: ${player.passivePet}</div><div class="pet-buff">${PET_BUFFS[player.passivePet].description}</div>` : '';
-            const pass2 = player.passivePet2 ? `<div class="pet-name" style="margin-top: 5px;">Passivo 2: ${player.passivePet2}</div><div class="pet-buff">${PET_BUFFS[player.passivePet2].description}</div>` : '';
-            activePetDisplay.innerHTML = `${main}${pass1}${pass2}`;
+            const curLang = (window.__gameI18n && window.__gameI18n.lang) || localStorage.getItem('__gameLang') || 'pt-BR';
+            const dictForLang = (window.__gameI18n && window.__gameI18n.dict && window.__gameI18n.dict[curLang]) ? window.__gameI18n.dict[curLang] : (typeof dict !== 'undefined' ? dict[curLang] : null);
+            const petDescriptions = (dictForLang && dictForLang.petDescriptions) ? dictForLang.petDescriptions : {};
+            const petNamesMap = (dictForLang && dictForLang.petNames) ? dictForLang.petNames : {};
+
+            let html = '';
+            if (player.activePet) {
+                const name = petNamesMap[player.activePet] || player.activePet;
+                const desc = petDescriptions[player.activePet] || (PET_BUFFS[player.activePet] && PET_BUFFS[player.activePet].description) || '';
+                html += `<div class="pet-name">Principal: ${name}</div><div class="pet-buff">${desc.replace(/\n/g, '<br>')}</div>`;
+            }
+            if (player.passivePet) {
+                const name = petNamesMap[player.passivePet] || player.passivePet;
+                const desc = petDescriptions[player.passivePet] || (PET_BUFFS[player.passivePet] && PET_BUFFS[player.passivePet].description) || '';
+                html += `<div class="pet-name" style="margin-top: 5px;">Passivo 1: ${name}</div><div class="pet-buff">${desc.replace(/\n/g, '<br>')}</div>`;
+            }
+            if (player.passivePet2) {
+                const name = petNamesMap[player.passivePet2] || player.passivePet2;
+                const desc = petDescriptions[player.passivePet2] || (PET_BUFFS[player.passivePet2] && PET_BUFFS[player.passivePet2].description) || '';
+                html += `<div class="pet-name" style="margin-top: 5px;">Passivo 2: ${name}</div><div class="pet-buff">${desc.replace(/\n/g, '<br>')}</div>`;
+            }
+            if (!html) {
+                // Nenhum pet ativo
+                html = `<div class="pet-name">${dictForLang.noActivePetName || 'Nenhum Pet Ativo'}</div><div class="pet-buff">${dictForLang.noActivePetBuff || 'Ative um pet para ganhar bônus!'}</div>`;
+            }
+            activePetDisplay.innerHTML = html;
 
             // Mostra botões de habilidade APENAS se o pet estiver no slot PRINCIPAL
             if (player.activePet === "Pica-Pau") btnConvertEggs.style.display = 'block';
             if (player.activePet === "Tatu") btnTatuAbility.style.display = 'block';
+
+            try { refreshActivePetDisplay(); } catch (e) { }
         }
 
 
@@ -2166,9 +2967,23 @@
 
             player.unlockedPets.forEach(petName => {
                 const entry = document.createElement('div'); entry.className = 'pet-entry';
-                const petInfoHTML = `<div class="pet-info"><strong>${petName}</strong><span>${PET_BUFFS[petName].description}</span></div>`;
-                const buttonsContainer = document.createElement('div'); buttonsContainer.className = 'pet-buttons';
+                // pega idioma atual seguro
+                // --- substitua a criação antiga de petInfoHTML por este bloco (em updatePetsPanel)
+                const curLang = (window.__gameI18n && window.__gameI18n.lang) || localStorage.getItem('__gameLang') || 'pt-BR';
+                const dictForLang = (window.__gameI18n && window.__gameI18n.dict && window.__gameI18n.dict[curLang]) ? window.__gameI18n.dict[curLang] : (typeof dict !== 'undefined' ? dict[curLang] : null);
+                const petDescriptions = (dictForLang && dictForLang.petDescriptions) ? dictForLang.petDescriptions : {};
+                const petNamesMap = (dictForLang && dictForLang.petNames) ? dictForLang.petNames : {};
 
+                // garante descrição e nome visível traduzidos (fallback para PET_BUFFS)
+                let desc = petDescriptions[petName] || (window.PET_BUFFS && window.PET_BUFFS[petName] && window.PET_BUFFS[petName].description) || '';
+                desc = String(desc).replace(/\n/g, '<br>');
+                const visibleName = petNamesMap[petName] || petName;
+
+                // salvamos o id canônico em data-pet-id para futuras traduções
+                const petInfoHTML = `<div class="pet-info"><strong data-pet-id="${petName}">${visibleName}</strong><span>${desc}</span></div>`;
+
+
+                const buttonsContainer = document.createElement('div'); buttonsContainer.className = 'pet-buttons';
                 // Lógica para desativar o pet de qualquer slot em que ele esteja
                 const deactivatePet = () => {
                     if (player.activePet === petName) player.activePet = null;
@@ -2179,13 +2994,28 @@
                 };
 
                 // Botão Principal
+                // ...dentro da função updatePetsPanel...
+
+                // Botão Principal
                 const btnPrimary = document.createElement('button');
                 if (player.activePet === petName) {
                     btnPrimary.textContent = 'Desativar (P)';
-                    btnPrimary.onclick = deactivatePet;
+                    btnPrimary.onclick = () => {
+                        deactivatePet();
+                        player.activePet = null;
+                        applyPetBuffs();
+                        updatePetsPanel();
+                        try { refreshActivePetDisplay(); } catch (e) { }
+                    };
                 } else {
                     btnPrimary.textContent = 'Ativar (P)';
-                    btnPrimary.onclick = () => { deactivatePet(); player.activePet = petName; applyPetBuffs(); updatePetsPanel(); };
+                    btnPrimary.onclick = () => {
+                        deactivatePet();
+                        player.activePet = petName;
+                        applyPetBuffs();
+                        updatePetsPanel();
+                        try { refreshActivePetDisplay(); } catch (e) { }
+                    };
                 }
                 buttonsContainer.appendChild(btnPrimary);
 
@@ -2193,14 +3023,27 @@
                 if (player.dualUpgrade) {
                     const btnPassive1 = document.createElement('button');
                     if (PET_BUFFS[petName].hasActiveAbility && petName !== 'Mico') {
-                        btnPassive1.textContent = 'Passivo (N/A)'; btnPassive1.disabled = true;
+                        btnPassive1.textContent = 'Passivo (N/A)';
+                        btnPassive1.disabled = true;
                     } else {
                         if (player.passivePet === petName) {
                             btnPassive1.textContent = 'Desativar (S1)';
-                            btnPassive1.onclick = deactivatePet;
+                            btnPassive1.onclick = () => {
+                                deactivatePet();
+                                player.passivePet = null;
+                                applyPetBuffs();
+                                updatePetsPanel();
+                                try { refreshActivePetDisplay(); } catch (e) { }
+                            };
                         } else {
                             btnPassive1.textContent = 'Ativar (S1)';
-                            btnPassive1.onclick = () => { deactivatePet(); player.passivePet = petName; applyPetBuffs(); updatePetsPanel(); };
+                            btnPassive1.onclick = () => {
+                                deactivatePet();
+                                player.passivePet = petName;
+                                applyPetBuffs();
+                                updatePetsPanel();
+                                try { refreshActivePetDisplay(); } catch (e) { }
+                            };
                         }
                     }
                     buttonsContainer.appendChild(btnPassive1);
@@ -2210,14 +3053,27 @@
                 if (player.tripleUpgrade) {
                     const btnPassive2 = document.createElement('button');
                     if (PET_BUFFS[petName].hasActiveAbility) {
-                        btnPassive2.textContent = 'Passivo (N/A)'; btnPassive2.disabled = true;
+                        btnPassive2.textContent = 'Passivo (N/A)';
+                        btnPassive2.disabled = true;
                     } else {
                         if (player.passivePet2 === petName) {
                             btnPassive2.textContent = 'Desativar (S2)';
-                            btnPassive2.onclick = deactivatePet;
+                            btnPassive2.onclick = () => {
+                                deactivatePet();
+                                player.passivePet2 = null;
+                                applyPetBuffs();
+                                updatePetsPanel();
+                                try { refreshActivePetDisplay(); } catch (e) { }
+                            };
                         } else {
                             btnPassive2.textContent = 'Ativar (S2)';
-                            btnPassive2.onclick = () => { deactivatePet(); player.passivePet2 = petName; applyPetBuffs(); updatePetsPanel(); };
+                            btnPassive2.onclick = () => {
+                                deactivatePet();
+                                player.passivePet2 = petName;
+                                applyPetBuffs();
+                                updatePetsPanel();
+                                try { refreshActivePetDisplay(); } catch (e) { }
+                            };
                         }
                     }
                     buttonsContainer.appendChild(btnPassive2);
@@ -2226,7 +3082,16 @@
                 entry.innerHTML = petInfoHTML;
                 entry.appendChild(buttonsContainer);
                 petList.appendChild(entry);
+                try { if (typeof translatePetsPanelEntries === 'function') translatePetsPanelEntries(); } catch (e) { console.warn('translatePetsPanelEntries failed', e); }
             });
+            // --- garantir tradução dos botões 'Ativar (P)' criados dinamicamente
+            try {
+                if (typeof translateActivateButtons === 'function') {
+                    const curLang = (window.__gameI18n && window.__gameI18n.lang) || localStorage.getItem('__gameLang') || 'pt-BR';
+                    translateActivateButtons(curLang);
+                }
+            } catch (e) { console.warn('translateActivateButtons after updatePetsPanel err', e); }
+
         }
 
         function canDrawImage(img) {
@@ -3797,6 +4662,169 @@
         })();
 
         (function () {
+            const sel = document.getElementById('langSelect');
+            // inicia com o idioma atual
+            if (window.__gameI18n && window.__gameI18n.lang) {
+                sel.value = window.__gameI18n.lang;
+            }
+            sel.addEventListener('change', (e) => {
+                const code = e.target.value;
+                if (window.setGameLang) window.setGameLang(code);
+            });
+        })();
+
+        // --- garantir que o active-pet esteja traduzido no primeiro render e quando mudar ---
+        (function () {
+            function getCurrentLang() {
+                return (window.__gameI18n && window.__gameI18n.lang)
+                    || localStorage.getItem('__gameLang')
+                    || (typeof lang !== 'undefined' ? lang : 'pt-BR');
+            }
+
+            function safeGetDictForLang(curLang) {
+                if (typeof dict !== 'undefined' && dict[curLang]) return dict[curLang];
+                if (window.__gameI18n && window.__gameI18n.dict && window.__gameI18n.dict[curLang]) return window.__gameI18n.dict[curLang];
+                return null;
+            }
+
+            function refreshActivePetDisplay(tryCount = 0) {
+                try {
+                    const ap = document.querySelector('#activePetDisplay');
+                    if (!ap) return;
+
+                    const petNameEl = ap.querySelector('.pet-name');
+                    const petBuffEl = ap.querySelector('.pet-buff');
+
+                    const curLang = getCurrentLang();
+                    const dictForLang = safeGetDictForLang(curLang) || {};
+                    const petDescriptions = dictForLang.petDescriptions || {};
+                    const petNamesMap = dictForLang.petNames || {};
+                    const D = (typeof D !== 'undefined') ? D : (dictForLang ? dictForLang : null);
+
+                    const activeName = (window.player && window.player.activePet) ? window.player.activePet : null;
+
+                    // NOME
+                    if (petNameEl) {
+                        if (activeName) {
+                            petNameEl.textContent = petNamesMap[activeName] || activeName;
+                            if (petNameEl.dataset && petNameEl.dataset.i18n === 'noActivePetName') delete petNameEl.dataset.i18n;
+                        } else {
+                            const key = petNameEl.dataset && petNameEl.dataset.i18n ? petNameEl.dataset.i18n : 'noActivePetName';
+                            if (dictForLang && dictForLang[key] !== undefined) {
+                                petNameEl.textContent = dictForLang[key];
+                            } else if (typeof D === 'object' && D[key] !== undefined) {
+                                petNameEl.textContent = D[key];
+                            } else {
+                                petNameEl.textContent = 'Nenhum Pet Ativo';
+                            }
+                            if (!petNameEl.dataset) petNameEl.dataset = {};
+                            petNameEl.dataset.i18n = key;
+                        }
+                    }
+
+                    // DESCRIÇÃO (buff)
+                    if (petBuffEl) {
+                        if (activeName) {
+                            const newDesc = petDescriptions[activeName]
+                                || (window.PET_BUFFS && window.PET_BUFFS[activeName] && window.PET_BUFFS[activeName].description)
+                                || '';
+                            petBuffEl.innerHTML = String(newDesc).replace(/\n/g, '<br>');
+                        } else {
+                            const key = petBuffEl.dataset && petBuffEl.dataset.i18n ? petBuffEl.dataset.i18n : 'noActivePetBuff';
+                            if (dictForLang && dictForLang[key] !== undefined) {
+                                petBuffEl.textContent = dictForLang[key];
+                            } else if (typeof D === 'object' && D[key] !== undefined) {
+                                petBuffEl.textContent = D[key];
+                            } else {
+                                petBuffEl.textContent = '';
+                            }
+                            if (!petBuffEl.dataset) petBuffEl.dataset = {};
+                            petBuffEl.dataset.i18n = key;
+                        }
+                    }
+                } catch (err) {
+                    if (tryCount < 6) {
+                        setTimeout(() => refreshActivePetDisplay(tryCount + 1), 120);
+                    } else {
+                        console.warn('refreshActivePetDisplay failed after retries', err);
+                    }
+                }
+            }
+
+            // chama agora mesmo e também quando DOMContentLoaded ocorrer
+            try { refreshActivePetDisplay(); } catch (e) { }
+            document.addEventListener('DOMContentLoaded', () => { try { refreshActivePetDisplay(); } catch (e) { } });
+
+            // observer já existia; garante que qualquer mutação também atualize
+            const apRoot = document.querySelector('#activePetDisplay');
+            if (apRoot) {
+                const mo = new MutationObserver(() => {
+                    // pequena proteção para não ficar em loop infinito: debounce com requestAnimationFrame
+                    requestAnimationFrame(refreshActivePetDisplay);
+                });
+                mo.observe(apRoot, { childList: true, subtree: true, characterData: true });
+            }
+
+            // se o jogo expõe setGameLang ou onGameLanguageChanged, injeta refresh
+            if (typeof window.setGameLang === 'function') {
+                const orig = window.setGameLang.bind(window);
+                window.setGameLang = function (newLang) {
+                    const ok = orig(newLang);
+                    try { updatePetsPanel(); } catch (e) { }
+                    try { refreshActivePetDisplay(); } catch (e) { console.warn(e); }
+                    return ok;
+                };
+            }
+            if (typeof window.onGameLanguageChanged === 'function') {
+                const orig = window.onGameLanguageChanged;
+                window.onGameLanguageChanged = function (newLang) {
+                    try { orig(newLang); } catch (e) { console.warn(e); }
+                    refreshActivePetDisplay();
+                };
+            }
+
+            // chama imediatamente (corrige o primeiro render se já tiver DOM pronto)
+            try { refreshActivePetDisplay(); } catch (e) { }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                try { refreshActivePetDisplay(); } catch (e) { }
+                // tenta novamente após um pequeno delay (para renderizações tardias do jogo)
+                setTimeout(() => {
+                    try { refreshActivePetDisplay(); } catch (e) { }
+                }, 150);
+            });
+
+            // garante que qualquer alteração posterior no #activePetDisplay reforce a tradução
+
+
+            // também chama quando a sua função global de trocar idioma for executada (se aplicável)
+            // Se você já sobrescreveu window.setGameLang (ou tem applyTranslations), adicione refresh lá.
+            if (typeof window.setGameLang === 'function') {
+                const orig = window.setGameLang.bind(window);
+                window.setGameLang = function (newLang) {
+                    const ok = orig(newLang);
+                    try { updatePetsPanel(); } catch (e) { }
+                    try { refreshActivePetDisplay(); } catch (e) { console.warn(e); }
+                    return ok;
+                };
+            }
+
+            // também chama ao trocar de idioma (caso haja função que você já usa)
+            // se você já tem um hook que chama applyTranslations(toLang), adicione refreshActivePetDisplay() nele.
+            if (typeof window.onGameLanguageChanged === 'function') {
+                const orig = window.onGameLanguageChanged;
+                window.onGameLanguageChanged = function (newLang) {
+                    try { orig(newLang); } catch (e) { console.warn(e); }
+                    refreshActivePetDisplay();
+                };
+            }
+        })();
+        // expõe player e a função de refresh globalmente (ajuda handlers externos)
+        if (typeof player !== 'undefined' && !window.player) window.player = player;
+        try { if (typeof refreshActivePetDisplay === 'function') window.refreshActivePetDisplay = refreshActivePetDisplay; } catch (e) { }
+
+
+        (function () {
             const gear = document.getElementById('modGearBtn');
             const panel = document.getElementById('modMenuPanel');
             const btnClose = document.getElementById('btnCloseMod');
@@ -3931,7 +4959,6 @@
 
     </script>
 </body>
-
 
 </html>
 
